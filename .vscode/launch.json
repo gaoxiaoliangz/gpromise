@@ -7,20 +7,8 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Promise",
-      "program": "${workspaceRoot}/promise.js"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Launch ptest",
-      "program": "${workspaceRoot}/ptest.js"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Launch Program",
-      "program": "${file}"
+      "name": "Test GPromise",
+      "program": "${workspaceRoot}/test-promise.js"
     }
   ]
 }
