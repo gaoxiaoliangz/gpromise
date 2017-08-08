@@ -43,7 +43,9 @@ class GPromise {
   constructor(executor) {
     this.next = undefined
     this.value = undefined
+    this.rejectReason = undefined
     this.thenHandler = undefined
+    this.rejectHandler = undefined
     this.state = PENDING
 
     if (executor !== INTERNAL) {
