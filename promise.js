@@ -1,41 +1,21 @@
-// function exec(handlers, initialData, done) {
-//   let index = 0
-//   const _exec = (data) => {
-//     handler = handlers[index]
-//     index++
-//     if (index <= handlers.length) {
-//       const result = handler(data)
-//       if (result instanceof GPromise) {
-//         result.then(data => {
-//           _exec(data)
-//         })
-//       } else {
-//         _exec(result)
-//       }
-//     } else {
-//       done()
-//     }
-//   }
-//   _exec(initialData)
-// }
-
 function exec(context, initialData, done) {
 
-  const _exec = (data) => {
-    if (context.next) {
-      const result = handler(data)
+  const _exec = (promise, data) => {
+    if (promise) {
+      const handler = promise.thenHandler
+      const result = handler ? handler(data) : data
       if (result instanceof GPromise) {
         result.then(data => {
-          _exec(data)
+          _exec(promise.next, data)
         })
       } else {
-        _exec(result)
+        _exec(promise.next, result)
       }
     } else if(done) {
       done()
     }
   }
-  _exec(initialData)
+  _exec(context, initialData)
 }
 
 const PENDING = 0
@@ -48,9 +28,11 @@ function resolve(value) {
 
   context.state = RESOLVED
   context.value = value
-  context.thenHandler(value)
+  if (context.thenHandler) {
+    // context.thenHandler(value)
+    exec(context, value)
+  }
 
-  exec(context, value)
   // const done = () => {
   //   context.queue = []
   // }
@@ -105,14 +87,18 @@ function delaySomeTime(t) {
 
 // delaySomeTime(1000)
 const a = delaySomeTime(1000)
-  .then(data => {
+
+const b = a.then(data => {
     console.log(data, '1')
-    return data
-    // return new GPromise(resolve => {
-    //   resolve('hahahas')
-    // })
+    // return data
+    return new GPromise(resolve => {
+      resolve('hahahas')
+    }).then(data => {
+      return data
+    })
   })
-  .then(data => {
+
+const c = b.then(data => {
     console.log(data, '2')
     // return data + 'moded'
     // return new GPromise(resolve => {
