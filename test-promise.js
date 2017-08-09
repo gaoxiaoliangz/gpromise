@@ -27,18 +27,18 @@ const a = delaySomeTime(1000)
   .then(dataA => {
     console.log(dataA, '1')
     const promise = new GPromise((resolve, reject) => {
-      resolve('modified')
-      // reject('fucked')
+      // resolve('modified')
+      reject('fucked')
     })
 
     return promise
-      // .then(dataC => {
-      //   // return dataC + '(mod)'
-      //   return GPromise.reject(dataC + 'fucked2222')
-      // })
+      .then(dataC => {
+        return dataC + '(mod)'
+        // return GPromise.reject(dataC + 'fucked2222')
+      })
   })
-  // .catch(dataB => {
-  .then(dataB => {
+  .catch(dataB => {
+  // .then(dataB => {
     console.log(dataB, '2')
     return new GPromise(resolve => {
       resolve(dataB + '(done)')
