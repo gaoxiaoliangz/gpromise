@@ -8,12 +8,27 @@ function delaySomeTime(t) {
   })
 }
 
+// delaySomeTime(1000)
+//   .then(data => {
+//     console.log(data)
+//     return data + ' a'
+//   })
+//   .then()
+//   .then(data => {
+//     console.log(data)
+//     return data + ' c'
+//   })
+//   .then(data => {
+//     console.log(data)
+//     return data + ' d'
+//   })
+
 const a = delaySomeTime(1000)
   .then(dataA => {
     console.log(dataA, '1')
     const promise = new GPromise((resolve, reject) => {
-      // resolve('modified')
-      reject('fucked')
+      resolve('modified')
+      // reject('fucked')
     })
 
     return promise
@@ -22,8 +37,8 @@ const a = delaySomeTime(1000)
       //   return GPromise.reject(dataC + 'fucked2222')
       // })
   })
-  .catch(dataB => {
-  // .then(dataB => {
+  // .catch(dataB => {
+  .then(dataB => {
     console.log(dataB, '2')
     return new GPromise(resolve => {
       resolve(dataB + '(done)')

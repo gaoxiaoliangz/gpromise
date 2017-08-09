@@ -3,94 +3,63 @@ const RESOLVED = 1
 const REJECTED = 2
 const INTERNAL = () => { }
 
+function resolveNestedPromise(promise, onSuccess, onReject) {
+  if (promise instanceof GPromise) {
+    promise
+      .then(data => {
+        resolveNestedPromise(data, onSuccess, onReject)
+      })
+      .catch(err => {
+        onReject(err)
+      })
+  } else {
+    onSuccess(promise)
+  }
+}
 
 function doAsync(fn) {
   setTimeout(fn, 0)
 }
 
-function exec({ promise, data, done }) {
-  if (promise) {
-    let resolvedData
-    // let _reject = false
+/**
+ * @param {*} promise current promise that's been resolved
+ */
+function exec(promise) {
+  if (promise.next) {
+    let result
 
-    const execChained = (callback) => {
-      switch (promise.state) {
-        case PENDING:
-          // result.then(data => {
-          //   exec({
-          //     promise: promise.next, data
-          //   })
-          // })
-          resolvedData = promise.thenHandler ?  promise.thenHandler(promise.value) : promise.value
-          
-          if (resolvedData instanceof GPromise) {
-            
-          }
+    if ((promise.state !== RESOLVED) && (promise.state !== REJECTED)) {
+      console.error(`State should be ${RESOLVED} or ${REJECTED} instead of: ${promise.state}`)
+      return
+    }
 
-          break
+    if (promise.state === RESOLVED && promise.thenHandler) {
+      // 可能只有 catch 而没有 then
+      result = promise.thenHandler(promise.value)
+    }
 
-        // case RESOLVED:
-        //   resolvedData = promise.thenHandler ?  promise.thenHandler(promise.value) : promise.value
-        //   break
-
-        // case REJECTED:
-        //   exec({
-        //     promise: promise.next, data: promise.rejectReason, reject: true
-        //   })
-        //   break
-
-        default:
-          console.error(`State should always be ${PENDING} instead of: ${result.state}`)
-          break
+    if (promise.state === REJECTED) {
+      if (promise.rejectHandler) {
+        result = promise.rejectHandler(promise.value)
       }
+      return console.error('UnhandledPromiseRejectionWarning:', promise.value)
+    }
 
-      doAsync(() => {
-        exec({
-          promise: promise.next, data, reject: _reject
+    return resolveNestedPromise(
+      result,
+      (value) => {
+        doAsync(() => {
+          resolve.call(promise.next, value)
+          exec(promise.next)
+        })
+      },
+      (err) => {
+        doAsync(() => {
+          reject.call(promise.next, value)
+          exec(promise.next)
         })
       })
-
-      // const handler = reject ? promise.rejectHandler : promise.thenHandler
-      // const result = handler ? handler(data) : data
-      // if (reject && !handler) {
-      //   console.error('UnhandledPromiseRejectionWarning:', data)
-      //   return false
-      // }
-      // if (result instanceof GPromise) {
-      //   switch (result.state) {
-      //     case PENDING:
-      //       result.then(data => {
-      //         exec({
-      //           promise: promise.next, data
-      //         })
-      //       })
-      //       break
-
-      //     case RESOLVED:
-      //       exec({
-      //         promise: promise.next, data: promise.value
-      //       })
-      //       break
-
-      //     case REJECTED:
-      //       exec({
-      //         promise: promise.next, data: promise.rejectReason, reject: true
-      //       })
-      //       break
-
-      //     default:
-      //       console.error(`Unkonwn state: ${result.state}`)
-      //       break
-      //   }
-      // } else {
-      //   doAsync(() => {
-      //     exec({
-      //       promise: promise.next, data: result, reject
-      //     })
-      //   })
-      // }
-    }
-  } else if (done) {
+  } else if (typeof done !== 'undefined') {
     done()
   }
 }
@@ -100,15 +69,19 @@ function resolve(value) {
 
   context.state = RESOLVED
   context.value = value
-  exec({ promise: context, data: value })
+  if (context.executor !== INTERNAL) {
+    exec(context)
+  }
 }
 
 function reject(reason) {
   const context = this
 
   context.state = REJECTED
-  context.rejectReason = reason
-  exec({ promise: context, data: reason })
+  context.value = reason
+  if (context.executor !== INTERNAL) {
+    exec(context)
+  }
 }
 
 class GPromise {
@@ -127,10 +100,10 @@ class GPromise {
   constructor(executor) {
     this.next = undefined
     this.value = undefined
-    this.rejectReason = undefined
     this.thenHandler = undefined
     this.rejectHandler = undefined
     this.state = PENDING
+    this.executor = executor
 
     if (executor !== INTERNAL) {
       doAsync(() => {
@@ -142,27 +115,27 @@ class GPromise {
   _registerChained(thenHandler, rejectHandler) {
     this.thenHandler = thenHandler
     this.rejectHandler = rejectHandler
+    let promise
+
     if (this.state === PENDING) {
-      const promise = new GPromise(INTERNAL)
-      this.next = promise
-      return promise
+      promise = new GPromise(INTERNAL)
     }
 
     if (this.state === RESOLVED) {
-      const promise = new GPromise(resolve => {
-        thenHandler(this.value)
-        resolve(this.value)
+      // this will start the new chain reaction
+      promise = new GPromise(resolve => {
+        resolve(thenHandler(this.value))
       })
-      return promise
     }
 
     if (this.state === REJECTED) {
-      const promise = new GPromise((resolve, reject) => {
-        rejectHandler(this.rejectReason)
-        reject(this.rejectReason)
+      promise = new GPromise((resolve, reject) => {
+        rejectHandler(this.value)
+        reject(this.value)
       })
-      return promise
     }
+    this.next = promise
+    return promise
   }
 
   catch(rejectHandler) {
