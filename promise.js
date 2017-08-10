@@ -3,110 +3,84 @@ const RESOLVED = 1
 const REJECTED = 2
 const INTERNAL = () => { }
 
-function resolveNestedPromise(promise, onSuccess, onReject) {
-  if (promise instanceof GPromise) {
-    promise
-      .then(data => {
-        resolveNestedPromise(data, onSuccess, onReject)
-      }, err => {
-        if (onReject) {
-          onReject(err)
-        }
-      })
-  } else {
-    onSuccess(promise)
-  }
-}
 
-function findClosestPromiseWithRejectHandler(promise) {
-  if (!promise || !promise.next) {
+
+function findClosest(promise, key) {
+  if (!promise) {
     return
   }
-  if (promise.next.rejectHandler) {
-    return promise.next
+  if (promise[key]) {
+    return promise
   } else {
-    return findClosestPromiseWithRejectHandler(promise.next)
+    return findClosest(promise.next, key)
   }
-}
-
-function doAsync(fn) {
-  setTimeout(fn, 0)
 }
 
 /**
- * @param {*} promise current promise that's been resolved
+ * 等待所有 Promise 依赖的所有 Promise 变为 resolved 或者其中一个 rejected
+ * （如果一个 Promise resolve 的值是一个状态为 pending 的 Promise 那么，这个
+ * Promise 仍然是 pending 的状态）
+ * @param {GPromise} promise 
+ * @param {function} done
  */
-function exec(promise) {
-  if (promise.next) {
-    let result
-    let closestPromiseWithRejectHandler
-    let nextPromise = promise.next
-
-    if ((promise.state !== RESOLVED) && (promise.state !== REJECTED)) {
-      console.error(`State should be ${RESOLVED} or ${REJECTED} instead of: ${promise.state}`)
-      return
-    }
-
-    if (promise.state === RESOLVED && promise.thenHandler) {
-      // 可能只有 catch 而没有 then
-      result = promise.thenHandler(promise.value)
-    }
-
-    if (promise.state === REJECTED) {
-      if (promise.rejectHandler) {
-        result = promise.rejectHandler(promise.value)
-      } else {
-        closestPromiseWithRejectHandler = findClosestPromiseWithRejectHandler(promise)
-        if (!closestPromiseWithRejectHandler) {
-          return console.error('UnhandledPromiseRejectionWarning:', promise.value)
+function untilFullfill(promise, done) {
+  // todo: work with other implementations of Promise
+  if (promise instanceof GPromise) {
+    promise
+      .then(data => {
+        if (data instanceof GPromise) {
+          untilFullfill(data, done)
+        } else {
+          done(promise)
         }
-        result = closestPromiseWithRejectHandler.rejectHandler(promise.value)
-        nextPromise = closestPromiseWithRejectHandler.next
-      }
-    }
-
-    return resolveNestedPromise(
-      result,
-      (value) => {
-        doAsync(() => {
-          resolve.call(nextPromise, value)
-          exec(nextPromise)
-        })
-      },
-      (err) => {
-        // nextPromise = findClosestPromiseWithRejectHandler(promise)
-        // if (!nextPromise) {
-        //   return console.error('UnhandledPromiseRejectionWarning:', promise.value)
-        // }
-
-        doAsync(() => {
-          reject.call(nextPromise, err)
-          exec(nextPromise)
-        })
-      }
-    )
-  } else if (typeof done !== 'undefined') {
-    done()
+      }, err => {
+        done(promise)
+      })
+  } else {
+    throw new Error('Not a promise!')
   }
 }
 
-function resolve(value) {
-  const context = this
 
-  context.state = RESOLVED
-  context.value = value
-  if (context.executor !== INTERNAL) {
-    exec(context)
+// proto fns using bind
+function registerChained(thenHandler, rejectHandler) {
+  this.thenHandler = thenHandler
+  this.rejectHandler = rejectHandler
+  let promise
+
+  if (this.state === PENDING) {
+    promise = new GPromise(INTERNAL)
+  }
+
+  if (this.state === RESOLVED) {
+    // this will start the new chain reaction
+    promise = new GPromise(resolve => {
+      resolve(thenHandler(this.value))
+    })
+  }
+
+  if (this.state === REJECTED) {
+    promise = new GPromise((resolve, reject) => {
+      reject(rejectHandler(this.value))
+    })
+  }
+  this.next = promise
+  return promise
+}
+
+function resolve(promise, value) {
+  // this.state = RESOLVED
+  this.value = value
+  if (this.executor !== INTERNAL) {
+    resolveChained(this)
   }
 }
 
 function reject(reason) {
-  const context = this
-
-  context.state = REJECTED
-  context.value = reason
-  if (context.executor !== INTERNAL) {
-    exec(context)
+  this.state = REJECTED
+  this.value = reason
+  if (this.executor !== INTERNAL) {
+    resolveChained(this)
   }
 }
 
@@ -131,46 +105,14 @@ class GPromise {
     this.state = PENDING
     this.executor = executor
 
-    if (executor !== INTERNAL) {
-      doAsync(() => {
-        executor(resolve.bind(this), reject.bind(this))
-      })
-    }
-  }
-
-  _registerChained(thenHandler, rejectHandler) {
-    this.thenHandler = thenHandler
-    this.rejectHandler = rejectHandler
-    let promise
-
-    if (this.state === PENDING) {
-      promise = new GPromise(INTERNAL)
-    }
-
-    if (this.state === RESOLVED) {
-      // this will start the new chain reaction
-      promise = new GPromise(resolve => {
-        resolve(thenHandler(this.value))
-      })
-    }
-
-    if (this.state === REJECTED) {
-      promise = new GPromise((resolve, reject) => {
-        reject(this.value)
-      })
-    }
-    this.next = promise
-    return promise
+    executor(resolve.bind(this), reject.bind(this))
   }
 
   catch(rejectHandler) {
-    return this._registerChained(undefined, rejectHandler)
+    return registerChained.call(this, undefined, rejectHandler)
   }
 
   then(thenHandler, rejectHandler) {
-    const promise = this._registerChained(thenHandler, rejectHandler)
-    return promise
+    return registerChained.call(this, thenHandler, rejectHandler)
   }
 }
-
-module.exports = GPromise
