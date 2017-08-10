@@ -8,20 +8,49 @@ function delaySomeTime(t) {
   })
 }
 
-delaySomeTime(1000)
-  .then(data => {
-    console.log(data)
-    return data + ' a'
+const a = new GPromise((resolve, reject) => {
+  setTimeout(function () {
+    reject('timer')
+  }, 200)
+})
+
+new GPromise(resolve => {
+  resolve(a.then(d => {
+    return d
+  }))
+  // resolve(a)
+})
+  .catch(err => {
+    console.log(err)
   })
-  // .then()
-  .then(data => {
-    console.log(data)
-    return data + ' c'
-  })
-  .then(data => {
-    console.log(data)
-    return data + ' d'
-  })
+  // .then(data => {
+  //   return data + 'mod'
+  // })
+  // .catch(err => {
+  //   console.log(err)
+  // })
+
+// delaySomeTime(1000)
+//   .then(data => {
+//     console.log(data)
+//     // return data + ' a'
+//     return new GPromise((resolve, reject) => {
+//       setTimeout(function () {
+//         reject(data + 'timer')
+//       }, 200)
+//     })
+//       .then(data => {
+//         return data + 'mod'
+//       })
+//   })
+//   .catch(data => {
+//     console.log(data)
+//     return data + ' c'
+//   })
+//   .then(data => {
+//     console.log(data)
+//     return data + ' d'
+//   })
 
 // const a = delaySomeTime(1000)
 //   .then(dataA => {

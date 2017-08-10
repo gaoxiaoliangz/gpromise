@@ -40,6 +40,10 @@ function resolveChained(promise) {
           // todo: doAsync?
           resolveChained(next)
         })
+      } else {
+        next.value = result
+        next.state = RESOLVED
+        resolveChained(next)
       }
     } else if (state === REJECTED) {
       console.error('UnhandledPromiseRejectionWarning:', promise.value)
@@ -59,16 +63,23 @@ function resolveChained(promise) {
 function untilFullfill(promise, done) {
   // todo: work with other implementations of Promise
   if (promise instanceof GPromise) {
-    promise
-      .then(data => {
-        if (data instanceof GPromise) {
-          untilFullfill(data, done)
-        } else {
+    if (promise.state === PENDING) {
+      promise
+        .then(data => {
+          if (data instanceof GPromise) {
+            untilFullfill(data, done)
+          } else {
+            done(promise)
+          }
+        }, err => {
+          // todo: 为什么这边需要重新设置？
+          promise.value = err
+          promise.state = REJECTED
           done(promise)
-        }
-      }, err => {
-        done(promise)
-      })
+        })
+    } else {
+      done(promise)
+    }
   } else {
     throw new Error('Not a promise!')
   }
