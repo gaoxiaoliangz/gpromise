@@ -75,46 +75,58 @@
 // }, 200)
 
 
-function delaySomeTime(t) {
-  return new Promise(resolve => {
-    setTimeout(function () {
-      resolve(`time delayed ${t}`)
-    }, t);
-  })
-}
+// fullfill
+// function delaySomeTime(t) {
+//   return new Promise(resolve => {
+//     setTimeout(function () {
+//       resolve(`time delayed ${t}`)
+//     }, t);
+//   })
+// }
 
 
-function untilFullfill(promise, done) {
-  if (promise instanceof Promise) {
-    promise
-      .then(data => {
-        if (data instanceof Promise) {
-          untilFullfill(data, done)
-        } else {
-          done(promise)
-        }
-      }, err => {
-        done(promise)
-      })
-  } else {
-    throw new Error('Not a promise!')
-  }
-}
+// function untilFullfill(promise, done) {
+//   if (promise instanceof Promise) {
+//     promise
+//       .then(data => {
+//         if (data instanceof Promise) {
+//           untilFullfill(data, done)
+//         } else {
+//           done(promise)
+//         }
+//       }, err => {
+//         done(promise)
+//       })
+//   } else {
+//     throw new Error('Not a promise!')
+//   }
+// }
 
-// const a = delaySomeTime(10)
+// // const a = delaySomeTime(10)
+// const a = new Promise(resolve => {
+//   resolve(delaySomeTime(1000).then(data => {
+//     return Promise.reject(data + 'no')
+//   }))
+// })
+
+// untilFullfill(a, pro => {
+//   const b = pro
+//   b.then(data => {
+//     const c = data
+//     console.log(data)
+//   })
+//     .catch(err => {
+//       console.log(err)
+//     })
+// })
+
+
+const b = Promise.reject(1)
+
 const a = new Promise(resolve => {
-  resolve(delaySomeTime(1000).then(data => {
-    return Promise.reject(data + 'no')
-  }))
+  resolve(b)
 })
 
-untilFullfill(a, pro => {
-  const b = pro
-  b.then(data => {
-    const c = data
-    console.log(data)
-  })
-    .catch(err => {
-      console.log(err)
-    })
-})
+setTimeout(function() {
+  const _a = a
+}, 1)

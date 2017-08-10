@@ -8,45 +8,45 @@ function delaySomeTime(t) {
   })
 }
 
-// delaySomeTime(1000)
-//   .then(data => {
-//     console.log(data)
-//     return data + ' a'
-//   })
-//   .then()
-//   .then(data => {
-//     console.log(data)
-//     return data + ' c'
-//   })
-//   .then(data => {
-//     console.log(data)
-//     return data + ' d'
-//   })
-
-const a = delaySomeTime(1000)
-  .then(dataA => {
-    console.log(dataA, '1')
-    const promise = new GPromise((resolve, reject) => {
-      // resolve('modified')
-      reject('fucked')
-    })
-
-    return promise
-      .then(dataC => {
-        return dataC + '(mod)'
-        // return GPromise.reject(dataC + 'fucked2222')
-      })
+delaySomeTime(1000)
+  .then(data => {
+    console.log(data)
+    return data + ' a'
   })
-  .catch(dataB => {
-  // .then(dataB => {
-    console.log(dataB, '2')
-    return new GPromise(resolve => {
-      resolve(dataB + '(done)')
-    })
-      .then(data => {
-        console.log(data)
-      })
+  // .then()
+  .then(data => {
+    console.log(data)
+    return data + ' c'
   })
+  .then(data => {
+    console.log(data)
+    return data + ' d'
+  })
+
+// const a = delaySomeTime(1000)
+//   .then(dataA => {
+//     console.log(dataA, '1')
+//     const promise = new GPromise((resolve, reject) => {
+//       // resolve('modified')
+//       reject('fucked')
+//     })
+
+//     return promise
+//       .then(dataC => {
+//         return dataC + '(mod)'
+//         // return GPromise.reject(dataC + 'fucked2222')
+//       })
+//   })
+//   .catch(dataB => {
+//   // .then(dataB => {
+//     console.log(dataB, '2')
+//     return new GPromise(resolve => {
+//       resolve(dataB + '(done)')
+//     })
+//       .then(data => {
+//         console.log(data)
+//       })
+//   })
 
 // const delaySomeTime2 = (t) => {
 //   return new Promise(resolve => {

@@ -4,16 +4,49 @@ const REJECTED = 2
 const INTERNAL = () => { }
 
 
-
 function findClosest(promise, key) {
-  if (!promise) {
+  const next = promise.next
+  if (!next) {
     return
   }
-  if (promise[key]) {
-    return promise
+  if (next[key]) {
+    return next
   } else {
-    return findClosest(promise.next, key)
+    return findClosest(next, key)
   }
+}
+
+
+function resolveChained(promise) {
+  if (!promise.next) {
+    if (promise.state === REJECTED) {
+      return console.error('UnhandledPromiseRejectionWarning:', promise.value)
+    }
+    return
+  }
+
+  const resolveNext = (state) => {
+    if (state !== RESOLVED && state !== REJECTED) {
+      return console.error(`Unexpected error! state should not be ${state}`)
+    }
+    const fnName = state === RESOLVED ? 'thenHandler' : 'rejectHandler'
+    const next = findClosest(promise, fnName)
+    if (next) {
+      const result = next[fnName](promise.value)
+      if (result instanceof GPromise) {
+        untilFullfill(result, fullfilledPromise => {
+          next.value = fullfilledPromise.value
+          next.state = fullfilledPromise.state
+          // todo: doAsync?
+          resolveChained(next)
+        })
+      }
+    } else if (state === REJECTED) {
+      console.error('UnhandledPromiseRejectionWarning:', promise.value)
+    }
+  }
+
+  resolveNext(promise.state)
 }
 
 /**
@@ -44,8 +77,6 @@ function untilFullfill(promise, done) {
 
 // proto fns using bind
 function registerChained(thenHandler, rejectHandler) {
-  this.thenHandler = thenHandler
-  this.rejectHandler = rejectHandler
   let promise
 
   if (this.state === PENDING) {
@@ -60,28 +91,46 @@ function registerChained(thenHandler, rejectHandler) {
   }
 
   if (this.state === REJECTED) {
-    promise = new GPromise((resolve, reject) => {
-      reject(rejectHandler(this.value))
-    })
+    if (rejectHandler) {
+      promise = new GPromise((resolve, reject) => {
+        resolve(rejectHandler(this.value))
+      })
+    } else {
+      promise = GPromise.reject(this.value)
+    }
   }
+  promise.thenHandler = thenHandler
+  promise.rejectHandler = rejectHandler
   this.next = promise
   return promise
 }
 
-function resolve(promise, value) {
-  // this.state = RESOLVED
-  this.value = value
-  if (this.executor !== INTERNAL) {
-    resolveChained(this)
+function handleExecutorCallback(value, defaultState) {
+  if (value instanceof GPromise) {
+    untilFullfill(value, fullfilledPromise => {
+      this.value = fullfilledPromise.value
+      this.state = fullfilledPromise.state
+
+      if (this.executor !== INTERNAL) {
+        resolveChained(this)
+      }
+    })
+  } else {
+    this.value = value
+    this.state = defaultState
+
+    if (this.executor !== INTERNAL) {
+      resolveChained(this)
+    }
   }
 }
 
-function reject(reason) {
-  this.state = REJECTED
-  this.value = reason
-  if (this.executor !== INTERNAL) {
-    resolveChained(this)
-  }
+function resolve(value) {
+  handleExecutorCallback.call(this, value, RESOLVED)
+}
+
+function reject(value) {
+  handleExecutorCallback.call(this, value, REJECTED)
 }
 
 class GPromise {
@@ -116,3 +165,5 @@ class GPromise {
     return registerChained.call(this, thenHandler, rejectHandler)
   }
 }
+
+module.exports = GPromise
