@@ -3,6 +3,11 @@ const RESOLVED = 1
 const REJECTED = 2
 const INTERNAL = () => { }
 
+function doAsync(fn) {
+  setTimeout(function () {
+    fn.call(null)
+  }, 0)
+}
 
 function findClosest(promise, key) {
   const next = promise.next
@@ -16,8 +21,9 @@ function findClosest(promise, key) {
   }
 }
 
-
 function resolveChained(promise) {
+  const state = promise.state
+
   if (!promise.next) {
     if (promise.state === REJECTED) {
       return console.error('UnhandledPromiseRejectionWarning:', promise.value)
@@ -25,35 +31,32 @@ function resolveChained(promise) {
     return
   }
 
-  const resolveNext = (state) => {
-    if (state !== RESOLVED && state !== REJECTED) {
-      return console.error(`Unexpected error! state should not be ${state}`)
-    }
-    const fnName = state === RESOLVED ? 'thenHandler' : 'rejectHandler'
-    const next = findClosest(promise, fnName)
-    if (next) {
-      let result = promise.value
-      if (typeof next[fnName] ==='function') {
-        result = next[fnName](promise.value)
-      }
-      if (result instanceof GPromise) {
-        untilFullfill(result, fullfilledPromise => {
-          next.value = fullfilledPromise.value
-          next.state = fullfilledPromise.state
-          // todo: doAsync?
-          resolveChained(next)
-        })
-      } else {
-        next.value = result
-        next.state = RESOLVED
-        resolveChained(next)
-      }
-    } else if (state === REJECTED) {
-      console.error('UnhandledPromiseRejectionWarning:', promise.value)
-    }
+  if (state !== RESOLVED && state !== REJECTED) {
+    return console.error(`Unexpected error! state should not be ${state}`)
   }
 
-  resolveNext(promise.state)
+  const fnName = state === RESOLVED ? 'thenHandler' : 'rejectHandler'
+  const next = findClosest(promise, fnName)
+  if (next) {
+    let result = promise.value
+    if (typeof next[fnName] === 'function') {
+      result = next[fnName](promise.value)
+    }
+    if (result instanceof GPromise) {
+      untilFullfill(result, fullfilledPromise => {
+        next.value = fullfilledPromise.value
+        next.state = fullfilledPromise.state
+        // todo: doAsync?
+        resolveChained(next)
+      })
+    } else {
+      next.value = result
+      next.state = RESOLVED
+      resolveChained(next)
+    }
+  } else if (state === REJECTED) {
+    console.error('UnhandledPromiseRejectionWarning:', promise.value)
+  }
 }
 
 /**
@@ -100,24 +103,28 @@ function registerChained(thenHandler, rejectHandler) {
   if (this.state === RESOLVED) {
     // this will start the new chain reaction
     promise = new GPromise(resolve => {
-      let val = this.value
-      if (typeof thenHandler === 'function') {
-        val = thenHandler(this.value)
-      }
-      resolve(val)
+      doAsync(() => {
+        let val = this.value
+        if (typeof thenHandler === 'function') {
+          val = thenHandler(this.value)
+        }
+        resolve(val)
+      })
     })
   }
 
   if (this.state === REJECTED) {
     if (rejectHandler) {
       promise = new GPromise((resolve, reject) => {
-        let val = this.value
-        if (typeof rejectHandler === 'function') {
-          val = rejectHandler(this.value)
-          resolve(val)
-        } else {
-          reject(val)
-        }
+        doAsync(() => {
+          let val = this.value
+          if (typeof rejectHandler === 'function') {
+            val = rejectHandler(this.value)
+            resolve(val)
+          } else {
+            reject(val)
+          }
+        })
       })
     } else {
       promise = GPromise.reject(this.value)

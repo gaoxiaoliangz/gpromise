@@ -29,6 +29,15 @@ const adapter = require('./test/adapter')
 
 
 // 3
-const deferred = adapter.resolved(1).then(2).then(data => {
-  console.log(data)
+// const deferred = adapter.resolved(1).then(2).then(data => {
+//   console.log(data)
+// })
+
+// 4
+// const deferred = adapter.resolved(1).then(data => {
+//   console.log(data)
+// })
+
+adapter.resolved(1).then(data => {
+  
 })
