@@ -104,7 +104,7 @@ function registerChained(thenHandler, rejectHandler) {
   if (this.state === REJECTED) {
     if (rejectHandler) {
       promise = new GPromise((resolve, reject) => {
-        resolve(rejectHandler(this.value))
+        reject(rejectHandler(this.value))
       })
     } else {
       promise = GPromise.reject(this.value)

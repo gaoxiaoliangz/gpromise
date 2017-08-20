@@ -11,5 +11,5 @@ module.exports = {
     return pending
   },
   resolved: value => Promise.resolve(value),
-  rejected: reason => Promise.resolve(reason),
+  rejected: reason => Promise.reject(reason),
 }
