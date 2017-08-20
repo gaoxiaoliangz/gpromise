@@ -6,7 +6,7 @@ const INTERNAL = () => { }
 function doAsync(fn) {
   setTimeout(function () {
     fn.call(null)
-  }, 0)
+  }, 1)
 }
 
 function findClosest(promise, key) {
@@ -39,20 +39,28 @@ function resolveChained(promise) {
   const next = findClosest(promise, fnName)
   if (next) {
     let result = promise.value
-    if (typeof next[fnName] === 'function') {
-      result = next[fnName](promise.value)
-    }
-    if (result instanceof GPromise) {
-      untilFullfill(result, fullfilledPromise => {
-        next.value = fullfilledPromise.value
-        next.state = fullfilledPromise.state
-        // todo: doAsync?
+
+    const processResult = (result2) => {
+      if (result2 instanceof GPromise) {
+        untilFullfill(result2, fullfilledPromise => {
+          next.value = fullfilledPromise.value
+          next.state = fullfilledPromise.state
+          resolveChained(next)
+        })
+      } else {
+        next.value = result2
+        next.state = RESOLVED
         resolveChained(next)
+      }
+    }
+
+    if (typeof next[fnName] === 'function') {
+      doAsync(() => {
+        result = next[fnName](promise.value)
+        processResult(result)
       })
     } else {
-      next.value = result
-      next.state = RESOLVED
-      resolveChained(next)
+      processResult(result)
     }
   } else if (state === REJECTED) {
     console.error('UnhandledPromiseRejectionWarning:', promise.value)

@@ -1,5 +1,6 @@
 const adapter = require('./test/adapter')
 
+
 // 1
 // const deferred = adapter.deferred()
 // deferred.resolve(true)
@@ -38,6 +39,14 @@ const adapter = require('./test/adapter')
 //   console.log(data)
 // })
 
-adapter.resolved(1).then(data => {
-  
-})
+var d = adapter.deferred();
+var isFulfilled = false;
+
+d.promise.then(function onFulfilled() {
+
+});
+
+setTimeout(function () {
+    d.resolve(1);
+    isFulfilled = true;
+}, 50);
