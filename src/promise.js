@@ -32,7 +32,10 @@ function resolveChained(promise) {
     const fnName = state === RESOLVED ? 'thenHandler' : 'rejectHandler'
     const next = findClosest(promise, fnName)
     if (next) {
-      const result = next[fnName](promise.value)
+      let result = promise.value
+      if (typeof next[fnName] ==='function') {
+        result = next[fnName](promise.value)
+      }
       if (result instanceof GPromise) {
         untilFullfill(result, fullfilledPromise => {
           next.value = fullfilledPromise.value
@@ -97,14 +100,24 @@ function registerChained(thenHandler, rejectHandler) {
   if (this.state === RESOLVED) {
     // this will start the new chain reaction
     promise = new GPromise(resolve => {
-      resolve(thenHandler(this.value))
+      let val = this.value
+      if (typeof thenHandler === 'function') {
+        val = thenHandler(this.value)
+      }
+      resolve(val)
     })
   }
 
   if (this.state === REJECTED) {
     if (rejectHandler) {
       promise = new GPromise((resolve, reject) => {
-        reject(rejectHandler(this.value))
+        let val = this.value
+        if (typeof rejectHandler === 'function') {
+          val = rejectHandler(this.value)
+          resolve(val)
+        } else {
+          reject(val)
+        }
       })
     } else {
       promise = GPromise.reject(this.value)

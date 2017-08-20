@@ -1,19 +1,34 @@
 const adapter = require('./test/adapter')
 
-const deferred = adapter.deferred()
-deferred.resolve(true)
-deferred.reject(true)
+// 1
+// const deferred = adapter.deferred()
+// deferred.resolve(true)
+// deferred.reject(true)
 
-setTimeout(function() {
-  const a = deferred.promise
-}, 1)
+// setTimeout(function() {
+//   const a = deferred.promise
+// }, 1)
+
+// // const rejected = Promise.reject('no')
+// const rejected = adapter.rejected('no')
+
+// rejected.then(a => {
+// }, a => {
+// })
 
 
-// const rejected = Promise.reject('no')
-const rejected = adapter.rejected('no')
+// 2
+// const deferred = adapter.deferred()
+// deferred.promise
+//   .then(1)
+//   .then(data => {
+//     console.log(data)
+//   })
 
-rejected.then(a => {
+// deferred.resolve('ok')
 
-}, a => {
 
+// 3
+const deferred = adapter.resolved(1).then(2).then(data => {
+  console.log(data)
 })
