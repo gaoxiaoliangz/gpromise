@@ -24,4 +24,3 @@ deferred.reject(true)
 setTimeout(function() {
   const a = deferred.promise
 }, 1)
-
