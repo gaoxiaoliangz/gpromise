@@ -3,70 +3,6 @@ const RESOLVED = 1
 const REJECTED = 2
 const INTERNAL = () => { }
 
-function doAsync(fn) {
-  setTimeout(function () {
-    fn.call(null)
-  }, 1)
-}
-
-function findClosest(promise, key) {
-  const next = promise.next
-  if (!next) {
-    return
-  }
-  if (next[key]) {
-    return next
-  } else {
-    return findClosest(next, key)
-  }
-}
-
-function resolveChained(promise) {
-  const state = promise.state
-
-  if (!promise.next) {
-    if (promise.state === REJECTED) {
-      return console.error('UnhandledPromiseRejectionWarning:', promise.value)
-    }
-    return
-  }
-
-  if (state !== RESOLVED && state !== REJECTED) {
-    return console.error(`Unexpected error! state should not be ${state}`)
-  }
-
-  const fnName = state === RESOLVED ? 'thenHandler' : 'rejectHandler'
-  const next = findClosest(promise, fnName)
-  if (next) {
-    let result = promise.value
-
-    const processResult = (result2) => {
-      if (result2 instanceof GPromise) {
-        untilFullfill(result2, fullfilledPromise => {
-          next.value = fullfilledPromise.value
-          next.state = fullfilledPromise.state
-          resolveChained(next)
-        })
-      } else {
-        next.value = result2
-        next.state = RESOLVED
-        resolveChained(next)
-      }
-    }
-
-    if (typeof next[fnName] === 'function') {
-      doAsync(() => {
-        result = next[fnName](promise.value)
-        processResult(result)
-      })
-    } else {
-      processResult(result)
-    }
-  } else if (state === REJECTED) {
-    console.error('UnhandledPromiseRejectionWarning:', promise.value)
-  }
-}
-
 /**
  * 等待所有 Promise 依赖的所有 Promise 变为 resolved 或者其中一个 rejected
  * （如果一个 Promise resolve 的值是一个状态为 pending 的 Promise 那么，这个
@@ -99,6 +35,64 @@ function untilFullfill(promise, done) {
   }
 }
 
+function doAsync(fn) {
+  setTimeout(function () {
+    fn.call(null)
+  }, 0)
+}
+
+// function findClosest(promise, key) {
+//   const next = promise.next
+//   if (!next) {
+//     return
+//   }
+//   if (next[key]) {
+//     return next
+//   } else {
+//     return findClosest(next, key)
+//   }
+// }
+
+function resolveChained(promise) {
+  const state = promise.state
+
+  if (!promise.queue.length === 0) {
+    if (promise.state === REJECTED) {
+      return console.error('UnhandledPromiseRejectionWarning:', promise.value)
+    }
+    return
+  }
+
+  if (state !== RESOLVED && state !== REJECTED) {
+    return console.error(`Unexpected error! state should not be ${state}`)
+  }
+
+  const fnName = state === RESOLVED ? 'thenHandler' : 'rejectHandler'
+  const processResult = (result2, next) => {
+    if (result2 instanceof GPromise) {
+      untilFullfill(result2, fullfilledPromise => {
+        next.value = fullfilledPromise.value
+        next.state = fullfilledPromise.state
+        resolveChained(next)
+      })
+    } else {
+      next.value = result2
+      next.state = RESOLVED
+      resolveChained(next)
+    }
+  }
+
+  promise.queue.forEach((next) => {
+    doAsync(() => {
+      let result = promise.value
+      if (typeof next[fnName] === 'function') {
+        result = next[fnName](promise.value)
+      }
+
+      processResult(result, next)
+    })
+  })
+}
 
 // proto fns using bind
 function registerChained(thenHandler, rejectHandler) {
@@ -140,7 +134,7 @@ function registerChained(thenHandler, rejectHandler) {
   }
   promise.thenHandler = thenHandler
   promise.rejectHandler = rejectHandler
-  this.next = promise
+  this.queue.push(promise)
   return promise
 }
 
@@ -190,7 +184,7 @@ class GPromise {
   }
 
   constructor(executor) {
-    this.next = undefined
+    this.queue = []
     this.value = undefined
     this.thenHandler = undefined
     this.rejectHandler = undefined
