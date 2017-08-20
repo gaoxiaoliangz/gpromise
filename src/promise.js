@@ -67,7 +67,7 @@ function resolveChained(promise) {
     return console.error(`Unexpected error! state should not be ${state}`)
   }
 
-  const fnName = state === RESOLVED ? 'thenHandler' : 'rejectHandler'
+  const fnName = state === RESOLVED ? 'onFulfilled' : 'onRejected'
   const processResult = (result2, next) => {
     if (result2 instanceof GPromise) {
       untilFullfill(result2, fullfilledPromise => {
@@ -95,7 +95,7 @@ function resolveChained(promise) {
 }
 
 // proto fns using bind
-function registerChained(thenHandler, rejectHandler) {
+function registerChained(onFulfilled, onRejected) {
   let promise
 
   if (this.state === PENDING) {
@@ -107,8 +107,8 @@ function registerChained(thenHandler, rejectHandler) {
     promise = new GPromise(resolve => {
       doAsync(() => {
         let val = this.value
-        if (typeof thenHandler === 'function') {
-          val = thenHandler(this.value)
+        if (typeof onFulfilled === 'function') {
+          val = onFulfilled(this.value)
         }
         resolve(val)
       })
@@ -116,12 +116,12 @@ function registerChained(thenHandler, rejectHandler) {
   }
 
   if (this.state === REJECTED) {
-    if (rejectHandler) {
+    if (onRejected) {
       promise = new GPromise((resolve, reject) => {
         doAsync(() => {
           let val = this.value
-          if (typeof rejectHandler === 'function') {
-            val = rejectHandler(this.value)
+          if (typeof onRejected === 'function') {
+            val = onRejected(this.value)
             resolve(val)
           } else {
             reject(val)
@@ -132,8 +132,8 @@ function registerChained(thenHandler, rejectHandler) {
       promise = GPromise.reject(this.value)
     }
   }
-  promise.thenHandler = thenHandler
-  promise.rejectHandler = rejectHandler
+  promise.onFulfilled = onFulfilled
+  promise.onRejected = onRejected
   this.queue.push(promise)
   return promise
 }
@@ -186,20 +186,20 @@ class GPromise {
   constructor(executor) {
     this.queue = []
     this.value = undefined
-    this.thenHandler = undefined
-    this.rejectHandler = undefined
+    this.onFulfilled = undefined
+    this.onRejected = undefined
     this.state = PENDING
     this.executor = executor
 
     executor(resolve.bind(this), reject.bind(this))
   }
 
-  catch(rejectHandler) {
-    return registerChained.call(this, undefined, rejectHandler)
+  catch(onRejected) {
+    return registerChained.call(this, undefined, onRejected)
   }
 
-  then(thenHandler, rejectHandler) {
-    return registerChained.call(this, thenHandler, rejectHandler)
+  then(onFulfilled, onRejected) {
+    return registerChained.call(this, onFulfilled, onRejected)
   }
 }
 
