@@ -1,7 +1,7 @@
 {
-  "name": "re-implementations",
-  "version": "1.0.0",
-  "description": "",
+  "name": "gpromise",
+  "version": "0.1.0",
+  "description": "Another Promise/A+ Implementation",
   "main": "observable.js",
   "scripts": {
     "test": "promises-aplus-tests test/adapter",
@@ -13,14 +13,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gaoxiaoliangz/re-implementations.git"
+    "url": "git+https://github.com/gaoxiaoliangz/gpromise.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/gaoxiaoliangz/re-implementations/issues"
+    "url": "https://github.com/gaoxiaoliangz/gpromise/issues"
   },
-  "homepage": "https://github.com/gaoxiaoliangz/re-implementations#readme",
+  "homepage": "https://github.com/gaoxiaoliangz/gpromise#readme",
   "devDependencies": {
     "bluebird": "^3.5.0",
     "immediate": "^3.2.3",
