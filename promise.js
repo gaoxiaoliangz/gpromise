@@ -137,11 +137,15 @@ function handleExecutorCallback(value, defaultState) {
 }
 
 function resolve(value) {
-  handleExecutorCallback.call(this, value, RESOLVED)
+  if (this.state === PENDING) {
+    handleExecutorCallback.call(this, value, RESOLVED)
+  }
 }
 
 function reject(value) {
-  handleExecutorCallback.call(this, value, REJECTED)
+  if (this.state === PENDING) {
+    handleExecutorCallback.call(this, value, REJECTED)
+  }
 }
 
 class GPromise {

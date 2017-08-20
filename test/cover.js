@@ -1,6 +1,9 @@
-const GPromise = require('./promise')
-
+var aplus = require('promises-aplus-tests');
+// var Promise = require('../lie')
+var Promise = require('../promise')
+// var Promise = require('bluebird')
 var adapter = {};
+var assert = require('assert');
 
 adapter.deferred = function () {
   var pending = {};
@@ -17,10 +20,8 @@ adapter.rejected = function (reason) {
   return Promise.reject(reason);
 }
 
-const deferred = adapter.deferred()
-deferred.resolve(true)
-deferred.reject(true)
-
-setTimeout(function() {
-  const a = deferred.promise
-}, 1)
+describe('Lie', function () {
+  describe('Promises/A+ Tests', function () {
+    aplus.mocha(adapter);
+  });
+});
