@@ -4,12 +4,9 @@
   "description": "Another Promise/A+ Implementation",
   "main": "observable.js",
   "scripts": {
-    "test": "promises-aplus-tests test/adapter",
-    "test2": "promises-aplus-tests test/adapter2",
-    "test3": "promises-aplus-tests test/adapter3",
-    "test4": "promises-aplus-tests test/adapter4",
-    "test5": "mocha -R nyan ./test/cover.js",
-    "test6": "mocha -R nyan ./test/step.js"
+    "test": "mocha -R nyan ./test/cover.js",
+    "test-a": "promises-aplus-tests test/adapter",
+    "test-s": "mocha -R nyan ./test/step.js"
   },
   "repository": {
     "type": "git",
@@ -22,7 +19,6 @@
   },
   "homepage": "https://github.com/gaoxiaoliangz/gpromise#readme",
   "devDependencies": {
-    "bluebird": "^3.5.0",
     "immediate": "^3.2.3",
     "mocha": "^3.5.0",
     "promises-aplus-tests": "^2.1.2"

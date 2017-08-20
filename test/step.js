@@ -1,23 +1,6 @@
-var aplus = require('promises-aplus-tests');
-var Promise = require('../promise')
-var adapter = {};
 var assert = require('assert');
+var adapter = require('./adapter');
 var testFulfilled = require("./testThreeCases").testFulfilled;
-
-adapter.deferred = function () {
-  var pending = {};
-  pending.promise = new Promise(function (resolver, reject) {
-    pending.resolve = resolver;
-    pending.reject = reject;
-  });
-  return pending;
-};
-adapter.resolved = function (value) {
-  return Promise.resolve(value);
-}
-adapter.rejected = function (reason) {
-  return Promise.reject(reason);
-}
 
 var deferred = adapter.deferred;
 var dummy = { dummy: "dummy" }; // we fulfill or reject with this when we don't intend to test against it

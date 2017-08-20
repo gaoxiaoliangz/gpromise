@@ -1,15 +1,15 @@
-const GPromise = require('../promise')
+const Promise = require('../src/promise')
 
 module.exports = {
   deferred: () => {
     const pending = {}
-    pending.promise = new GPromise((resolve, reject) => {
+    pending.promise = new Promise((resolve, reject) => {
       pending.resolve = resolve
       pending.reject = reject
     })
 
     return pending
   },
-  resolved: value => GPromise.resolve(value),
-  rejected: reason => GPromise.resolve(reason),
+  resolved: value => Promise.resolve(value),
+  rejected: reason => Promise.resolve(reason),
 }

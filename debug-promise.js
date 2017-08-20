@@ -1,4 +1,4 @@
-const GPromise = require('./promise')
+const GPromise = require('./src/promise')
 
 function delaySomeTime(t) {
   return new GPromise(resolve => {

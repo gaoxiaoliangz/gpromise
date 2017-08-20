@@ -7,20 +7,14 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Test GPromise",
-      "program": "${workspaceRoot}/test-promise.js"
+      "name": "Debug GPromise",
+      "program": "${workspaceRoot}/debug-promise.js"
     },
     {
       "type": "node",
       "request": "launch",
-      "name": "Test GPromise2",
-      "program": "${workspaceRoot}/test-promise2.js"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Test 3",
-      "program": "${workspaceRoot}/ptest3.js"
+      "name": "Debug GPromise 2",
+      "program": "${workspaceRoot}/debug-promise2.js"
     }
   ]
 }
