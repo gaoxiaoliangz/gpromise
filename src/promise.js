@@ -4,7 +4,8 @@ const REJECTED = 2
 const INTERNAL = () => { }
 
 function isPromise(promise) {
-  return (promise && typeof promise === 'object') && (typeof promise.then === 'function')
+  // 2.3.3.1: promise 也可能是带有 then 的 function
+  return promise && (typeof promise.then === 'function')
 }
 
 /**
@@ -114,8 +115,9 @@ function registerChained(onFulfilled, onRejected) {
       if (typeof handler === 'function') {
         value = handler(value)
         if (isPromise(value)) {
+          // 2.3.1
           if (value === promise) {
-            throw new TypeError('Cannot use the same promise instance as the return value!')
+            throw new TypeError('Cannot current promise instance as the return value!')
           }
         }
       }
