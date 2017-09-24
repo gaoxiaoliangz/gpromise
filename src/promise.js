@@ -17,7 +17,7 @@ function isPromise(promise) {
  */
 function untilFullfill(promise, done) {
   if (isPromise(promise)) {
-    let fullfillValue
+    let isFullfilled = false
     try {
       promise
         .then(data => {
@@ -25,15 +25,13 @@ function untilFullfill(promise, done) {
             untilFullfill(data, done)
           } else {
             done(RESOLVED, data)
-            fullfillValue = data
+            isFullfilled = true
           }
         }, err => {
           done(REJECTED, err)
         })
     } catch (err) {
-      if (fullfillValue) {
-        done(RESOLVED, fullfillValue)  
-      } else {
+      if (!isFullfilled) {
         done(REJECTED, err)
       }
     }
