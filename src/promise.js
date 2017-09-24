@@ -4,7 +4,7 @@ const REJECTED = 2
 const INTERNAL = () => { }
 
 function isPromise(promise) {
-  return (typeof promise === 'object') && (typeof promise.then === 'function')
+  return (promise && typeof promise === 'object') && (typeof promise.then === 'function')
 }
 
 /**

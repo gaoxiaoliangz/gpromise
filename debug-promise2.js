@@ -10,10 +10,10 @@ const deferred = adapter.deferred()
 //   })
 
 const a = deferred.promise
-  .then(null, err => {
-    return 'ok'
+  .then(() => {
+    throw null
   })
-  .then(v => {
+  .catch(v => {
     console.log(v)
   })
 // .catch(err => {
@@ -21,7 +21,7 @@ const a = deferred.promise
 // })
 
 // deferred.resolve('a')
-deferred.reject('a')
+deferred.resolve('a')
 
 // const a = Promise.resolve(2)
 
