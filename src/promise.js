@@ -58,6 +58,7 @@ function resolveChained(promise) {
     try {
       if (typeof handler === 'function') {
         settleValue = handler(value)
+        settleState = RESOLVED
       }
     } catch (error) {
       settleValue = error
