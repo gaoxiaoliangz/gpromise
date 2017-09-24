@@ -3,35 +3,18 @@ const adapter = require('./test/adapter')
 // var testFulfilled = require("./test/aplus-tests/helpers/testThreeCases").testFulfilled;
 
 const deferred = adapter.deferred
-const resolved = adapter.rejected
+const resolved = adapter.resolved
 const rejected = adapter.rejected
 
 var dummy = { dummy: "dummy" };
 
+const promise1 = resolved(dummy)
 
-// testFulfilled(dummy, function (promise1, done) {
-//   var promise2 = promise1.then(function onFulfilled() {
-//       throw expectedReason;
-//   });
+var promise2 = promise1.then(function onFulfilled() {
+  // throw { then: function () { } }
+  throw resolved(dummy)
+});
 
-//   promise2.then(null, function onPromise2Rejected(actualReason) {
-//       assert.strictEqual(actualReason, expectedReason);
-//       done();
-//   });
-// });
-
-
-// const d1 = deferred()
-const d1 = resolved('what?')
-
-const a = d1
-  .then(() => {
-    // throw { then: function () { } }
-    throw resolved(dummy)
-    // throw rejected(dummy);
-  })
-  .catch(v => {
-    console.log(v)
-  })
-
-// d1.resolve('a')
+promise2.then(null, function onPromise2Rejected(actualReason) {
+  console.log(actualReason);
+});

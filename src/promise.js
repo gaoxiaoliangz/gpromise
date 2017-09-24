@@ -161,27 +161,24 @@ function registerChained(onFulfilled, onRejected) {
   return promise
 }
 
-function handleExecutorCallback(value, defaultState) {
-  if (isPromise(value)) {
-    untilFullfill(value, (state, value) => {
-      settlePromise(this, state, value)
-      resolveChained(this)
-    })
-  } else {
-    settlePromise(this, defaultState, value)
-    resolveChained(this)
-  }
-}
-
 function resolve(value) {
   if (this.state === PENDING) {
-    handleExecutorCallback.call(this, value, RESOLVED)
+    if (isPromise(value)) {
+      untilFullfill(value, (state, value) => {
+        settlePromise(this, state, value)
+        resolveChained(this)
+      })
+    } else {
+      settlePromise(this, RESOLVED, value)
+      resolveChained(this)
+    }
   }
 }
 
 function reject(value) {
   if (this.state === PENDING) {
-    handleExecutorCallback.call(this, value, REJECTED)
+    settlePromise(this, REJECTED, value)
+    resolveChained(this)
   }
 }
 
