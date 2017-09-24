@@ -55,17 +55,19 @@ function resolveChained(promise) {
   const settle = (item, handler, done) => {
     let settleValue = value
     let settleState = state
+    let errored = false
     try {
       if (typeof handler === 'function') {
         settleValue = handler(value)
         settleState = RESOLVED
       }
     } catch (error) {
+      errored = true
       settleValue = error
       settleState = REJECTED
     }
 
-    if (isPromise(settleValue)) {
+    if (isPromise(settleValue) && !errored) {
       untilFullfill(settleValue, (state2, value2) => {
         const finalState = settleState === REJECTED ? REJECTED : state2
         settlePromise(item, finalState, value2)

@@ -9,12 +9,6 @@
       "request": "launch",
       "name": "Debug GPromise",
       "program": "${workspaceRoot}/debug-promise.js"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug GPromise 2",
-      "program": "${workspaceRoot}/debug-promise2.js"
     }
   ]
 }
