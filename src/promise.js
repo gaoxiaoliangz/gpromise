@@ -5,7 +5,7 @@ const INTERNAL = () => { }
 
 function isPromise(promise) {
   // 2.3.3.1: promise 也可能是带有 then 的 function
-  return promise && (typeof promise.then === 'function')
+  return promise && (promise instanceof Object || typeof promise === 'object') && ('then' in promise)
 }
 
 /**
@@ -17,16 +17,20 @@ function isPromise(promise) {
  */
 function untilFullfill(promise, done) {
   if (isPromise(promise)) {
-    promise
-      .then(data => {
-        if (isPromise(data)) {
-          untilFullfill(data, done)
-        } else {
-          done(RESOLVED, data)
-        }
-      }, err => {
-        done(REJECTED, err)
-      })
+    try {    
+      promise
+        .then(data => {
+          if (isPromise(data)) {
+            untilFullfill(data, done)
+          } else {
+            done(RESOLVED, data)
+          }
+        }, err => {
+          done(REJECTED, err)
+        })
+    } catch (err) {
+      done(REJECTED, err)
+    }
   } else {
     throw new Error('Not a promise!')
   }
