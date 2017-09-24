@@ -10,4 +10,4 @@ require('./aplus-tests/2.2.4');
 require('./aplus-tests/2.2.5');
 require('./aplus-tests/2.2.6');
 require('./aplus-tests/2.2.7');
-// require('./aplus-tests/2.3.1');
+require('./aplus-tests/2.3.1');

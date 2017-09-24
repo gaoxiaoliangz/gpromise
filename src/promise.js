@@ -113,6 +113,11 @@ function registerChained(onFulfilled, onRejected) {
     try {
       if (typeof handler === 'function') {
         value = handler(value)
+        if (isPromise(value)) {
+          if (value === promise) {
+            throw new TypeError('Cannot use the same promise instance as the return value!')
+          }
+        }
       }
     } catch (error) {
       errored = true

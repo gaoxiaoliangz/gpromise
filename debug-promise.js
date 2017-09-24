@@ -6,15 +6,21 @@ const deferred = adapter.deferred
 const resolved = adapter.resolved
 const rejected = adapter.rejected
 
-var dummy = { dummy: "dummy" };
+// var dummy = { dummy: "dummy" };
 
-const promise1 = resolved(dummy)
+// const promise1 = resolved(dummy)
 
-var promise2 = promise1.then(function onFulfilled() {
-  // throw { then: function () { } }
-  throw resolved(dummy)
-});
+// var promise2 = promise1.then(function onFulfilled() {
+//   // throw { then: function () { } }
+//   throw resolved(dummy)
+// });
 
-promise2.then(null, function onPromise2Rejected(actualReason) {
-  console.log(actualReason);
-});
+// promise2.then(null, function onPromise2Rejected(actualReason) {
+//   console.log(actualReason);
+// });
+
+// const a = new Promise()
+// const b = 
+
+
+
