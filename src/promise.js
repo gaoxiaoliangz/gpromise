@@ -17,19 +17,25 @@ function isPromise(promise) {
  */
 function untilFullfill(promise, done) {
   if (isPromise(promise)) {
-    try {    
+    let fullfillValue
+    try {
       promise
         .then(data => {
           if (isPromise(data)) {
             untilFullfill(data, done)
           } else {
             done(RESOLVED, data)
+            fullfillValue = data
           }
         }, err => {
           done(REJECTED, err)
         })
     } catch (err) {
-      done(REJECTED, err)
+      if (fullfillValue) {
+        done(RESOLVED, fullfillValue)  
+      } else {
+        done(REJECTED, err)
+      }
     }
   } else {
     throw new Error('Not a promise!')
