@@ -16,41 +16,41 @@ exports["`null`"] = function () {
     return null;
 };
 
-// exports["`false`"] = function () {
-//     return false;
-// };
+exports["`false`"] = function () {
+    return false;
+};
 
-// exports["`0`"] = function () {
-//     return 0;
-// };
+exports["`0`"] = function () {
+    return 0;
+};
 
-// exports["an error"] = function () {
-//     return new Error();
-// };
+exports["an error"] = function () {
+    return new Error();
+};
 
-// exports["an error without a stack"] = function () {
-//     var error = new Error();
-//     delete error.stack;
+exports["an error without a stack"] = function () {
+    var error = new Error();
+    delete error.stack;
 
-//     return error;
-// };
+    return error;
+};
 
-// exports["a date"] = function () {
-//     return new Date();
-// };
+exports["a date"] = function () {
+    return new Date();
+};
 
-// exports["an object"] = function () {
-//     return {};
-// };
+exports["an object"] = function () {
+    return {};
+};
 
-// exports["an always-pending thenable"] = function () {
-//     return { then: function () { } };
-// };
+exports["an always-pending thenable"] = function () {
+    return { then: function () { } };
+};
 
-// exports["a fulfilled promise"] = function () {
-//     return resolved(dummy);
-// };
+exports["a fulfilled promise"] = function () {
+    return resolved(dummy);
+};
 
-// exports["a rejected promise"] = function () {
-//     return rejected(dummy);
-// };
+exports["a rejected promise"] = function () {
+    return rejected(dummy);
+};
