@@ -630,6 +630,7 @@ describe("2.3.3: Otherwise, if `x` is an object or function,", function () {
                             }, 50);
 
                             setTimeout(function () {
+                                console.log(timesFulfilled, timesRejected)
                                 assert.strictEqual(timesFulfilled, 1);
                                 assert.strictEqual(timesRejected, 0);
                                 done();

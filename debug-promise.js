@@ -101,3 +101,92 @@ var other = { other: "other" };
 // promise.then(function onPromiseFulfilled(value) {
 //   console.log(value)
 // });
+
+
+// 4 
+// describe("2.3.2.1: If `x` is pending, `promise` must remain pending until `x` is fulfilled or rejected.",
+
+// function xFactory() {
+//   return deferred().promise;
+// }
+
+// var wasFulfilled = false;
+// var wasRejected = false;
+
+// resolved(dummy).then(function onBasePromiseFulfilled() {
+//   return xFactory();
+// }).then(
+//   function onPromiseFulfilled() {
+//     wasFulfilled = true;
+//   },
+//   function onPromiseRejected() {
+//     wasRejected = true;
+//   }
+//   );
+
+// setTimeout(function () {
+//   console.log(wasFulfilled, wasRejected)
+// }, 100);
+
+// 5
+// describe("calling `resolvePromise` then `rejectPromise`, both synchronously", function () {
+// function xFactory() {
+//   return {
+//     then: function (resolvePromise, rejectPromise) {
+//       resolvePromise(sentinel);
+//       rejectPromise(other);
+//     }
+//   };
+// }
+
+// resolved(dummy).then(function onBasePromiseFulfilled() {
+//   return xFactory();
+// }).then(function (value) {
+//   console.log(value)
+// });
+
+
+// 6
+// describe("saving and abusing `resolvePromise` and `rejectPromise`", function () {
+var savedResolvePromise, savedRejectPromise;
+
+function xFactory() {
+  return {
+    then: function (resolvePromise, rejectPromise) {
+      savedResolvePromise = resolvePromise;
+      savedRejectPromise = rejectPromise;
+    }
+  };
+}
+
+var timesFulfilled = 0;
+var timesRejected = 0;
+
+rejected(dummy).then(null, function onBasePromiseRejected() {
+  return xFactory();
+}).then(
+  function () {
+    ++timesFulfilled;
+  },
+  function () {
+    ++timesRejected;
+  });
+
+if (savedResolvePromise && savedRejectPromise) {
+  savedResolvePromise(dummy);
+  savedResolvePromise(dummy);
+  savedRejectPromise(dummy);
+  savedRejectPromise(dummy);
+}
+
+setTimeout(function () {
+  savedResolvePromise(dummy);
+  savedResolvePromise(dummy);
+  savedRejectPromise(dummy);
+  savedRejectPromise(dummy);
+}, 50);
+
+setTimeout(function () {
+  console.log(timesFulfilled, 'should be 1')
+  console.log(timesRejected, 'should be 0')
+}, 100);

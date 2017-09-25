@@ -21,6 +21,9 @@ class GPromise {
     this.onRejected = undefined
     this.state = PENDING
     this.executor = executor
+    
+    this._resolveCalled = false
+    this._rejectCalled = false
     executor(resolve.bind(this), reject.bind(this))
   }
 
@@ -39,7 +42,8 @@ function settlePromise(promise, state, value) {
 }
 
 function resolve(value) {
-  if (this.state === PENDING) {
+  if (this.state === PENDING && !this._resolveCalled) {
+    this._resolveCalled = true
     unwrap(value, (state, value) => {
       settlePromise(this, state, value)
       resolveChained(this)
@@ -48,7 +52,8 @@ function resolve(value) {
 }
 
 function reject(value) {
-  if (this.state === PENDING) {
+  if (this.state === PENDING && !this._rejectCalled) {
+    this._rejectCalled = true
     settlePromise(this, REJECTED, value)
     resolveChained(this)
   }
