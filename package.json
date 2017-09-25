@@ -1,6 +1,6 @@
 {
   "name": "gpromise",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Another Promise/A+ Implementation",
   "main": "observable.js",
   "scripts": {
