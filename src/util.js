@@ -1,9 +1,7 @@
 const { PENDING, RESOLVED, REJECTED, INTERNAL } = require('./constants')
 
 function doAsync(fn) {
-  setTimeout(function () {
-    fn.call(null)
-  }, 0)
+  setTimeout(fn)
 }
 
 exports.doAsync = doAsync
