@@ -2,4 +2,4 @@
 
 Another Promise/A+ Implementation
 
-Tests: 117/858 (2017.8.20 16:43)
+Tests: 290/858 (2017.9.25 12:44)

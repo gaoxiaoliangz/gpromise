@@ -8,6 +8,21 @@ function isPromise(promise) {
   return promise && (promise instanceof Object || typeof promise === 'object') && ('then' in promise)
 }
 
+// function getThenResultIfAny(promise, done, errorCallback) {
+//   try {
+
+//     if (promise && (promise instanceof Object || typeof promise === 'object') && ('then' in promise)) {
+//       const then = promise.then
+//       if (typeof then === 'function') {
+//         done(then)
+//       }
+//     }
+//     return
+//   } catch (error) {
+//     errorCallback(error)
+//   }
+// }
+
 /**
  * 等待所有 Promise 依赖的所有 Promise 变为 resolved 或者其中一个 rejected
  * （如果一个 Promise resolve 的值是一个状态为 pending 的 Promise 那么，这个
@@ -19,17 +34,21 @@ function untilFullfill(promise, done) {
   if (isPromise(promise)) {
     let isFullfilled = false
     try {
-      promise
-        .then(data => {
-          if (isPromise(data)) {
-            untilFullfill(data, done)
-          } else {
-            done(RESOLVED, data)
-            isFullfilled = true
-          }
-        }, err => {
-          done(REJECTED, err)
-        })
+      // const then = promise.then
+      // if (typeof then === 'function') {
+      promise.then(data => {
+        if (isPromise(data)) {
+          untilFullfill(data, done)
+        } else {
+          done(RESOLVED, data)
+          isFullfilled = true
+        }
+      }, err => {
+        done(REJECTED, err)
+      })
+      // } else {
+      //   done(RESOLVED, promise)
+      // }
     } catch (err) {
       if (!isFullfilled) {
         done(REJECTED, err)
@@ -122,11 +141,9 @@ function registerChained(onFulfilled, onRejected) {
     try {
       if (typeof handler === 'function') {
         value = handler(value)
-        if (isPromise(value)) {
-          // 2.3.1
-          if (value === promise) {
-            throw new TypeError('Cannot current promise instance as the return value!')
-          }
+        // 2.3.1
+        if (value === promise) {
+          throw new TypeError('Cannot resolve promise with itself!')
         }
       }
     } catch (error) {
