@@ -20,26 +20,29 @@ function unwrap(value, done) {
     let isFullfilled = false
     try {
       const then = value.then
-      let isOnFullfilledCalled = false
-      let isOnRejectedCalled = false
+      let called = false
+
+      const onFullfilled = data => {
+        if (!called) {
+          called = true
+          if (isPromiseLike(data)) {
+            unwrap(data, done)
+          } else {
+            done(RESOLVED, data)
+            isFullfilled = true
+          }
+        }
+      }
+
+      const onRejected = err => {
+        if (!called) {
+          called = true
+          done(REJECTED, err)
+        }
+      }
 
       if (typeof then === 'function') {
-        then.call(value, data => {
-          if (!isOnFullfilledCalled) {
-            isOnFullfilledCalled = true
-            if (isPromiseLike(data)) {
-              unwrap(data, done)
-            } else {
-              done(RESOLVED, data)
-              isFullfilled = true
-            }
-          }
-        }, err => {
-          if (!isOnRejectedCalled) {
-            isOnRejectedCalled = true
-            done(REJECTED, err)
-          }
-        })
+        then.call(value, onFullfilled, onRejected)
       } else {
         done(RESOLVED, value)
       }
