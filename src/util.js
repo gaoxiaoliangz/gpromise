@@ -6,53 +6,41 @@ function doAsync(fn) {
 
 exports.doAsync = doAsync
 
-// function getThenResultIfAny(promise, done, errorCallback) {
-//   try {
-
-//     if (promise && (promise instanceof Object || typeof promise === 'object') && ('then' in promise)) {
-//       const then = promise.then
-//       if (typeof then === 'function') {
-//         done(then)
-//       }
-//     }
-//     return
-//   } catch (error) {
-//     errorCallback(error)
-//   }
-// }
-
-function isPromise(promise) {
+function isPromiseLike(promise) {
   // 2.3.3.1: promise 也可能是带有 then 的 function
   return promise && (promise instanceof Object || typeof promise === 'object') && ('then' in promise)
 }
-
-exports.isPromise = isPromise
 
 /**
  * @param {GPromise} promise 
  * @param {function} done
  */
-function unwrap(promise, done) {
-  if (isPromise(promise)) {
+function unwrap(value, done) {
+  if (isPromiseLike(value)) {
     let isFullfilled = false
     try {
-      promise.then(data => {
-        if (isPromise(data)) {
-          untilFullfill(data, done)
-        } else {
-          done(RESOLVED, data)
-          isFullfilled = true
-        }
-      }, err => {
-        done(REJECTED, err)
-      })
+      const then = value.then
+      if (typeof then === 'function') {
+        then.call(value, data => {
+          if (isPromiseLike(data)) {
+            unwrap(data, done)
+          } else {
+            done(RESOLVED, data)
+            isFullfilled = true
+          }
+        }, err => {
+          done(REJECTED, err)
+        })
+      } else {
+        done(RESOLVED, value)
+      }
     } catch (err) {
       if (!isFullfilled) {
         done(REJECTED, err)
       }
     }
   } else {
-    done(RESOLVED, promise)
+    done(RESOLVED, value)
   }
 }
 
