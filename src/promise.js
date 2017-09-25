@@ -1,20 +1,5 @@
-const { untilFullfill, isPromise, doAsync } = require('./util')
+const { doAsync, unwrap } = require('./util')
 const { PENDING, RESOLVED, REJECTED, INTERNAL } = require('./constants')
-
-// function getThenResultIfAny(promise, done, errorCallback) {
-//   try {
-
-//     if (promise && (promise instanceof Object || typeof promise === 'object') && ('then' in promise)) {
-//       const then = promise.then
-//       if (typeof then === 'function') {
-//         done(then)
-//       }
-//     }
-//     return
-//   } catch (error) {
-//     errorCallback(error)
-//   }
-// }
 
 class GPromise {
   static resolve(value) {
@@ -55,15 +40,10 @@ function settlePromise(promise, state, value) {
 
 function resolve(value) {
   if (this.state === PENDING) {
-    if (isPromise(value)) {
-      untilFullfill(value, (state, value) => {
-        settlePromise(this, state, value)
-        resolveChained(this)
-      })
-    } else {
-      settlePromise(this, RESOLVED, value)
+    unwrap(value, (state, value) => {
+      settlePromise(this, state, value)
       resolveChained(this)
-    }
+    })
   }
 }
 
@@ -81,7 +61,7 @@ function registerChained(onFulfilled, onRejected) {
     promise = new GPromise(INTERNAL)
   }
 
-  const getValue = (initValue, handler) => {
+  const retrieveValue = (initValue, handler) => {
     let value = initValue
     let errored = false
     try {
@@ -103,7 +83,7 @@ function registerChained(onFulfilled, onRejected) {
     // this will start the new chain reaction
     promise = new GPromise((resolve, reject) => {
       doAsync(() => {
-        const { value, errored } = getValue(this.value, onFulfilled)
+        const { value, errored } = retrieveValue(this.value, onFulfilled)
         if (errored) {
           reject(value)
         } else {
@@ -118,7 +98,7 @@ function registerChained(onFulfilled, onRejected) {
       promise = new GPromise((resolve, reject) => {
         doAsync(() => {
           if (typeof onRejected === 'function') {
-            const { value, errored } = getValue(this.value, onRejected)
+            const { value, errored } = retrieveValue(this.value, onRejected)
             if (errored) {
               reject(value)
             } else {
@@ -162,8 +142,8 @@ function resolveChained(promise) {
       settleState = REJECTED
     }
 
-    if (isPromise(settleValue) && !errored) {
-      untilFullfill(settleValue, (state2, value2) => {
+    if (!errored) {
+      unwrap(settleValue, (state2, value2) => {
         const finalState = settleState === REJECTED ? REJECTED : state2
         settlePromise(item, finalState, value2)
         done()

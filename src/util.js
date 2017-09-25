@@ -8,6 +8,21 @@ function doAsync(fn) {
 
 exports.doAsync = doAsync
 
+// function getThenResultIfAny(promise, done, errorCallback) {
+//   try {
+
+//     if (promise && (promise instanceof Object || typeof promise === 'object') && ('then' in promise)) {
+//       const then = promise.then
+//       if (typeof then === 'function') {
+//         done(then)
+//       }
+//     }
+//     return
+//   } catch (error) {
+//     errorCallback(error)
+//   }
+// }
+
 function isPromise(promise) {
   // 2.3.3.1: promise 也可能是带有 then 的 function
   return promise && (promise instanceof Object || typeof promise === 'object') && ('then' in promise)
@@ -16,18 +31,13 @@ function isPromise(promise) {
 exports.isPromise = isPromise
 
 /**
- * 等待所有 Promise 依赖的所有 Promise 变为 resolved 或者其中一个 rejected
- * （如果一个 Promise resolve 的值是一个状态为 pending 的 Promise 那么，这个
- * Promise 仍然是 pending 的状态）
  * @param {GPromise} promise 
  * @param {function} done
  */
-function untilFullfill(promise, done) {
+function unwrap(promise, done) {
   if (isPromise(promise)) {
     let isFullfilled = false
     try {
-      // const then = promise.then
-      // if (typeof then === 'function') {
       promise.then(data => {
         if (isPromise(data)) {
           untilFullfill(data, done)
@@ -38,17 +48,14 @@ function untilFullfill(promise, done) {
       }, err => {
         done(REJECTED, err)
       })
-      // } else {
-      //   done(RESOLVED, promise)
-      // }
     } catch (err) {
       if (!isFullfilled) {
         done(REJECTED, err)
       }
     }
   } else {
-    throw new Error('Not a promise!')
+    done(RESOLVED, promise)
   }
 }
 
-exports.untilFullfill = untilFullfill
+exports.unwrap = unwrap
