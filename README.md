@@ -5,4 +5,20 @@
 
 # GPromise
 
-Another Promise/A+ Implementation
+A small promise library implementing the [Promises/A+ spec](http://promises-aplus.github.com/promises-spec/) (Version 1.1).
+
+## Basic Usage
+
+```js
+const examplePromise = new GPromise(resolve => {
+    setTimeout(() => {
+        resolve('done')
+    }, 1000)
+})
+
+// logs `done` after 1s
+examplePromise.then(result => {
+    console.log(result)
+})
+
+```
