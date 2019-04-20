@@ -14,9 +14,9 @@ const isPromise = value => {
 
 const tryCatch = fn => {
   try {
-    return [fn(), undefined]
+    return [fn(), false]
   } catch (error) {
-    return [undefined, error]
+    return [error, true]
   }
 }
 
@@ -99,8 +99,6 @@ class Promise {
         resolveReturned,
         rejectReturned,
       } = callback
-      let returned = this.value
-      let error
 
       const handleReturned = returned => {
         if (isPromise(returned)) {
@@ -109,7 +107,7 @@ class Promise {
         resolveReturned(returned)
       }
 
-      ;[returned, error] = tryCatch(() => {
+      const [returned, hasError] = tryCatch(() => {
         if (this.state === STATE.FULFILLED) {
           if (typeof onFulfilled === 'function') {
             return onFulfilled(this.value)
@@ -124,8 +122,8 @@ class Promise {
 
       callback.executed = true
 
-      if (error) {
-        return rejectReturned(error)
+      if (hasError) {
+        return rejectReturned(returned)
       }
       return handleReturned(returned)
     })
