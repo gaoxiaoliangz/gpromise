@@ -99,9 +99,13 @@ class Promise {
         onRejected,
         resolveReturned,
         rejectReturned,
+        returnedPromise,
       } = callback
 
       const handleReturned = returned => {
+        if (returned === returnedPromise) {
+          return rejectReturned(new TypeError(`Cannot resolve using self`))
+        }
         if (isPromise(returned)) {
           return returned.then(resolveReturned, rejectReturned)
         }
@@ -148,6 +152,7 @@ class Promise {
       onRejected,
       resolveReturned,
       rejectReturned,
+      returnedPromise,
     })
     return returnedPromise
   }
