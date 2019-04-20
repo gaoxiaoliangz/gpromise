@@ -67,7 +67,8 @@ class Promise {
         })
       }
 
-      if (isPromise(value)) {
+      // throw 出来的 promise 不需要等待完成
+      if (isPromise(value) && state !== STATE.REJECTED) {
         value.then(
           v => {
             change(state, v)
