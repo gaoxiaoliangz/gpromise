@@ -25,7 +25,44 @@ const specify = (desc, fn) => {
   fn(done)
 }
 
-const tes1 = () => {
+// ----------------------------------------------------------------------------------
+
+const basicUse = () => {
+  const d = deferred()
+  const p1 = d.promise
+  setTimeout(() => {
+    d.resolve(1)
+  }, 100)
+  const p2 = p1.then(value => {
+    console.log(value)
+    throw new Error('oops')
+  })
+  const p3 = p2.then(
+    value => {
+      console.log(value)
+    }
+    // err => {
+    //   console.log(err.message, 'then catch')
+    // }
+  )
+  const p4 = p3
+    .catch(err => {
+      console.log(err.message)
+      return 'ok'
+    })
+    .then(() => {
+      console.log('wtf')
+    })
+
+  // setTimeout(() => {
+  //   console.log(p1)
+  //   console.log(p2)
+  //   console.log('p3', p3)
+  //   console.log('p4', p4)
+  // }, 500)
+}
+
+const testNoneFunc = () => {
   function testNonFunction(nonFunction, stringRepresentation) {
     specify('`onFulfilled` is ' + stringRepresentation, function(done) {
       rejected(dummy).then(nonFunction, function() {
@@ -41,7 +78,7 @@ const tes1 = () => {
   // testNonFunction({}, 'an object')
 }
 
-const test2 = () => {
+const testThen = () => {
   specify(
     'when one `onFulfilled` is added inside another `onFulfilled`',
     function(done) {
@@ -58,23 +95,6 @@ const test2 = () => {
     }
   )
 }
-
-const testThenOrder = () => {
-  const p = resolved('val')
-
-  p.then(v => {
-    console.log(1)
-  })
-  p.then(v => {
-    console.log(2)
-  })
-  p.then(v => {
-    console.log(3)
-  })
-}
-
-test2()
-// testThenOrder()
 
 // --------------------------------------------------------
 // 1 piece
