@@ -8,6 +8,14 @@ const isPromise = value =>
   (typeof value === 'object' || typeof value === 'function') &&
   typeof value.then === 'function'
 
+const tryCatch = fn => {
+  try {
+    return [fn(), null]
+  } catch (error) {
+    return [null, error]
+  }
+}
+
 class Promise {
   static resolve(value) {
     return new Promise(resolve => {
@@ -23,12 +31,13 @@ class Promise {
 
   constructor(executor) {
     executor(this._resolve.bind(this), this._reject.bind(this))
-    this._initProperty('state', STATE.PENDING)
+    this._initProperty('state', STATE.PENDING, {
+      enumerable: true,
+    })
     this._initProperty('value', undefined, {
       enumerable: true,
     })
-    this._initProperty('fulfilledCallbacks', [])
-    this._initProperty('rejectedCallbacks', [])
+    this._initProperty('callbacks', [])
     this._initProperty('then', this._registerCallback)
     this._initProperty('catch', this._registerCallback.bind(this, null))
   }
@@ -61,28 +70,36 @@ class Promise {
   }
 
   _executeCallbacks() {
-    const tasks =
-      this.state === STATE.FULFILLED
-        ? this.fulfilledCallbacks
-        : this.rejectedCallbacks
+    this.callbacks.forEach(
+      ({ onFulfilled, onRejected, resolveReturned, rejectReturned }) => {
+        let returned = this.value
+        let error
+        const handleReturned = returned => {
+          if (isPromise(returned)) {
+            return returned.then(resolveReturned, rejectReturned)
+          }
+          resolveReturned(returned)
+        }
 
-    tasks.forEach(({ callback = v => v, resolveReturned, rejectReturned }) => {
-      let thrownError
-      let returned = this.value
-      try {
-        returned = callback(this.value)
-      } catch (error) {
-        thrownError = error
+        ;[returned, error] = tryCatch(() => {
+          if (this.state === STATE.FULFILLED) {
+            if (typeof onFulfilled === 'function') {
+              return onFulfilled(this.value)
+            }
+            return this.value
+          }
+          if (typeof onRejected === 'function') {
+            return onRejected(this.value)
+          }
+          throw this.value
+        })
+
+        if (error) {
+          return rejectReturned(error)
+        }
+        return handleReturned(returned)
       }
-      if (thrownError) {
-        return rejectReturned(thrownError)
-      }
-      if (isPromise(returned)) {
-        returned.then(resolveReturned, rejectReturned)
-      } else {
-        resolveReturned(returned)
-      }
-    })
+    )
   }
 
   _registerCallback(onFulfilled, onRejected) {
@@ -92,18 +109,12 @@ class Promise {
       resolveReturned = resolve
       rejectReturned = reject
     })
-    this.fulfilledCallbacks.push({
-      callback: onFulfilled,
+    this.callbacks.push({
+      onFulfilled,
+      onRejected,
       resolveReturned,
       rejectReturned,
     })
-    if (typeof onRejected === 'function') {
-      this.rejectedCallbacks.push({
-        callback: onRejected,
-        resolveReturned,
-        rejectReturned,
-      })
-    }
     return returnedPromise
   }
 }

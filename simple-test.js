@@ -46,10 +46,13 @@ const p4 = p3.catch(err => {
   console.log(err.message)
   return 'ok'
 })
+// .then(() => {
+//   console.log('wtf')
+// })
 
-setTimeout(() => {
-  console.log(p1)
-  console.log(p2)
-  console.log(p3)
-  console.log(p4)
-}, 500)
+// setTimeout(() => {
+//   console.log(p1)
+//   console.log(p2)
+//   console.log('p3', p3)
+//   console.log('p4', p4)
+// }, 500)
