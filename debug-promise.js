@@ -1,13 +1,82 @@
-const adapter = require('./test/adapter')
+let adapter = require('./test/adapter')
+const assert = require('assert')
+
+const useNativePromise = process.argv.slice(2)[0] === '-n'
+
+if (useNativePromise) {
+  adapter = require('./test/adapter2')
+}
+
+console.log(`using ${useNativePromise ? 'native' : 'my'} promise\n`)
 
 const deferred = adapter.deferred
 const resolved = adapter.resolved
 const rejected = adapter.rejected
 
-var dummy = { dummy: "dummy" };
-var sentinel = { sentinel: "sentinel" };
-var other = { other: "other" };
+const dummy = { dummy: 'dummy' }
+const sentinel = { sentinel: 'sentinel' }
+const other = { other: 'other' }
 
+const specify = (desc, fn) => {
+  const done = () => {
+    console.log('done called')
+  }
+  console.log(desc)
+  fn(done)
+}
+
+const tes1 = () => {
+  function testNonFunction(nonFunction, stringRepresentation) {
+    specify('`onFulfilled` is ' + stringRepresentation, function(done) {
+      rejected(dummy).then(nonFunction, function() {
+        done()
+      })
+    })
+  }
+
+  testNonFunction(undefined, '`undefined`')
+  // testNonFunction(null, '`null`')
+  // testNonFunction(false, '`false`')
+  // testNonFunction(5, '`5`')
+  // testNonFunction({}, 'an object')
+}
+
+const test2 = () => {
+  specify(
+    'when one `onFulfilled` is added inside another `onFulfilled`',
+    function(done) {
+      var promise = resolved()
+      var firstOnFulfilledFinished = false
+
+      promise.then(function() {
+        promise.then(function() {
+          assert.strictEqual(firstOnFulfilledFinished, true)
+          done()
+        })
+        firstOnFulfilledFinished = true
+      })
+    }
+  )
+}
+
+const testThenOrder = () => {
+  const p = resolved('val')
+
+  p.then(v => {
+    console.log(1)
+  })
+  p.then(v => {
+    console.log(2)
+  })
+  p.then(v => {
+    console.log(3)
+  })
+}
+
+test2()
+// testThenOrder()
+
+// --------------------------------------------------------
 // 1 piece
 // function yFactory() { return 5; }
 // var numberOfTimesThenRetrieved = 0;
@@ -26,7 +95,6 @@ var other = { other: "other" };
 //     }
 //   });
 // }
-
 
 // 2 piece
 // var outerThenableFactory = function (value) {
@@ -71,7 +139,6 @@ var other = { other: "other" };
 //   console.log(numberOfTimesThenRetrieved)
 // });
 
-
 // 2 简化
 // var promise = resolved(dummy).then(function() {
 //   return {
@@ -90,7 +157,6 @@ var other = { other: "other" };
 //   console.log(value)
 // });
 
-
 // 3 then is not a function
 // var promise = resolved(dummy).then(function() {
 //   return {
@@ -102,8 +168,7 @@ var other = { other: "other" };
 //   console.log(value)
 // });
 
-
-// 4 
+// 4
 // describe("2.3.2.1: If `x` is pending, `promise` must remain pending until `x` is fulfilled or rejected.",
 
 // function xFactory() {
@@ -144,7 +209,6 @@ var other = { other: "other" };
 // }).then(function (value) {
 //   console.log(value)
 // });
-
 
 // 6
 // describe("saving and abusing `resolvePromise` and `rejectPromise`", function () {
