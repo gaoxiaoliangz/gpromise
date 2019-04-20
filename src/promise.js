@@ -1,177 +1,111 @@
-const { doAsync, unwrap } = require('./util')
-const { PENDING, RESOLVED, REJECTED, INTERNAL } = require('./constants')
+const STATE = {
+  PENDING: 0,
+  FULFILLED: 1,
+  REJECTED: -1,
+}
 
-class GPromise {
+const isPromise = value =>
+  (typeof value === 'object' || typeof value === 'function') &&
+  typeof value.then === 'function'
+
+class Promise {
   static resolve(value) {
-    return new GPromise((resolve) => {
+    return new Promise(resolve => {
       resolve(value)
     })
   }
 
-  static reject(reason) {
-    return new GPromise((resolve, reject) => {
-      reject(reason)
+  static reject(value) {
+    return new Promise((resolve, reject) => {
+      reject(value)
     })
   }
 
   constructor(executor) {
-    this.queue = []
-    this.value = undefined
-    this.onFulfilled = undefined
-    this.onRejected = undefined
-    this.state = PENDING
-    this.executor = executor
-    
-    this._resolveCalled = false
-    this._rejectCalled = false
-    executor(resolve.bind(this), reject.bind(this))
-  }
-
-  catch(onRejected) {
-    return registerChained.call(this, undefined, onRejected)
-  }
-
-  then(onFulfilled, onRejected) {
-    return registerChained.call(this, onFulfilled, onRejected)
-  }
-}
-
-function settlePromise(promise, state, value) {
-  promise.state = state
-  promise.value = value
-}
-
-function resolve(value) {
-  if (this.state === PENDING && !this._resolveCalled) {
-    this._resolveCalled = true
-    unwrap(value, (state, value) => {
-      settlePromise(this, state, value)
-      resolveChained(this)
+    executor(this._resolve.bind(this), this._reject.bind(this))
+    this._initProperty('state', STATE.PENDING)
+    this._initProperty('value', undefined, {
+      enumerable: true,
     })
-  }
-}
-
-function reject(value) {
-  if (this.state === PENDING && !this._rejectCalled) {
-    this._rejectCalled = true
-    settlePromise(this, REJECTED, value)
-    resolveChained(this)
-  }
-}
-
-function registerChained(onFulfilled, onRejected) {
-  let promise
-
-  if (this.state === PENDING) {
-    promise = new GPromise(INTERNAL)
+    this._initProperty('fulfilledCallbacks', [])
+    this._initProperty('rejectedCallbacks', [])
+    this._initProperty('then', this._registerCallback)
+    this._initProperty('catch', this._registerCallback.bind(this, null))
   }
 
-  const retrieveValue = (initValue, handler) => {
-    let value = initValue
-    let errored = false
-    try {
-      if (typeof handler === 'function') {
-        value = handler(value)
-        // 2.3.1
-        if (value === promise) {
-          throw new TypeError('Cannot resolve promise with itself!')
-        }
-      }
-    } catch (error) {
-      errored = true
-      value = error
-    }
-    return { value, errored }
-  }
-
-  if (this.state === RESOLVED) {
-    // this will start the new chain reaction
-    promise = new GPromise((resolve, reject) => {
-      doAsync(() => {
-        const { value, errored } = retrieveValue(this.value, onFulfilled)
-        if (errored) {
-          reject(value)
-        } else {
-          resolve(value)
-        }
-      })
+  _initProperty(key, value, config) {
+    Object.defineProperty(this, key, {
+      enumerable: false,
+      value,
+      writable: true,
+      ...config,
     })
   }
 
-  if (this.state === REJECTED) {
-    if (onRejected) {
-      promise = new GPromise((resolve, reject) => {
-        doAsync(() => {
-          if (typeof onRejected === 'function') {
-            const { value, errored } = retrieveValue(this.value, onRejected)
-            if (errored) {
-              reject(value)
-            } else {
-              resolve(value)
-            }
-          } else {
-            reject(this.value)
-          }
-        })
-      })
-    } else {
-      promise = GPromise.reject(this.value)
+  _resolve(value) {
+    if (isPromise(value)) {
+    } else if (this.state === STATE.PENDING) {
+      this.state = STATE.FULFILLED
+      this.value = value
+      this._executeCallbacks()
     }
   }
-  promise.onFulfilled = onFulfilled
-  promise.onRejected = onRejected
-  this.queue.push(promise)
-  return promise
-}
 
-function resolveChained(promise) {
-  const state = promise.state
-  const value = promise.value
-
-  if (state !== RESOLVED && state !== REJECTED) {
-    return console.error(`Unexpected error! state should not be ${state}`)
+  _reject(value) {
+    if (isPromise(value)) {
+    } else if (this.state === STATE.PENDING) {
+      this.state = STATE.REJECTED
+      this.value = value
+      this._executeCallbacks()
+    }
   }
 
-  const settle = (item, handler, done) => {
-    let settleValue = value
-    let settleState = state
-    let errored = false
-    try {
-      if (typeof handler === 'function') {
-        settleValue = handler(value)
-        settleState = RESOLVED
+  _executeCallbacks() {
+    const tasks =
+      this.state === STATE.FULFILLED
+        ? this.fulfilledCallbacks
+        : this.rejectedCallbacks
+
+    tasks.forEach(({ callback = v => v, resolveReturned, rejectReturned }) => {
+      let thrownError
+      let returned = this.value
+      try {
+        returned = callback(this.value)
+      } catch (error) {
+        thrownError = error
       }
-    } catch (error) {
-      errored = true
-      settleValue = error
-      settleState = REJECTED
-    }
-
-    if (!errored) {
-      unwrap(settleValue, (state2, value2) => {
-        const finalState = settleState === REJECTED ? REJECTED : state2
-        settlePromise(item, finalState, value2)
-        done()
-      })
-    } else {
-      settlePromise(item, settleState, settleValue)
-      done()
-    }
-  }
-
-  promise.queue.forEach((item) => {
-    doAsync(() => {
-      if (state === RESOLVED) {
-        settle(item, item.onFulfilled, () => {
-          resolveChained(item)
-        })
+      if (thrownError) {
+        return rejectReturned(thrownError)
+      }
+      if (isPromise(returned)) {
+        returned.then(resolveReturned, rejectReturned)
       } else {
-        settle(item, item.onRejected, () => {
-          resolveChained(item)
-        })
+        resolveReturned(returned)
       }
     })
-  })
+  }
+
+  _registerCallback(onFulfilled, onRejected) {
+    let resolveReturned
+    let rejectReturned
+    const returnedPromise = new Promise((resolve, reject) => {
+      resolveReturned = resolve
+      rejectReturned = reject
+    })
+    this.fulfilledCallbacks.push({
+      callback: onFulfilled,
+      resolveReturned,
+      rejectReturned,
+    })
+    if (typeof onRejected === 'function') {
+      this.rejectedCallbacks.push({
+        callback: onRejected,
+        resolveReturned,
+        rejectReturned,
+      })
+    }
+    return returnedPromise
+  }
 }
 
-module.exports = GPromise
+module.exports = Promise
