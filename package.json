@@ -2,11 +2,11 @@
   "name": "gpromise",
   "version": "1.0.0",
   "description": "Another Promise/A+ Implementation",
-  "main": "observable.js",
+  "main": "src/promise.js",
   "scripts": {
-    "test": "mocha -R nyan ./test/cover.js",
-    "test-a": "promises-aplus-tests test/adapter",
-    "test-s": "mocha -R nyan ./test/step.js"
+    "test": "promises-aplus-tests test/adapter",
+    "test:cover": "mocha -R nyan ./test/cover.js",
+    "test:step": "mocha -R nyan ./test/step.js"
   },
   "repository": {
     "type": "git",

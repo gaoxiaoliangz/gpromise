@@ -24,6 +24,47 @@ const specify = (desc, fn) => {
   console.log(desc)
   fn(done)
 }
+const describe = specify
+
+const testFulfilled = function(value, test) {
+  specify('already-fulfilled', function(done) {
+    test(resolved(value), done)
+  })
+
+  specify('immediately-fulfilled', function(done) {
+    var d = deferred()
+    test(d.promise, done)
+    d.resolve(value)
+  })
+
+  specify('eventually-fulfilled', function(done) {
+    var d = deferred()
+    test(d.promise, done)
+    setTimeout(function() {
+      d.resolve(value)
+    }, 50)
+  })
+}
+
+const testRejected = function(reason, test) {
+  specify('already-rejected', function(done) {
+    test(rejected(reason), done)
+  })
+
+  specify('immediately-rejected', function(done) {
+    var d = deferred()
+    test(d.promise, done)
+    d.reject(reason)
+  })
+
+  specify('eventually-rejected', function(done) {
+    var d = deferred()
+    test(d.promise, done)
+    setTimeout(function() {
+      d.reject(reason)
+    }, 50)
+  })
+}
 
 // ----------------------------------------------------------------------------------
 
@@ -95,6 +136,49 @@ const testThen = () => {
     }
   )
 }
+
+const throwReason = () => {
+  describe(
+    '2.2.7.2: If either `onFulfilled` or `onRejected` throws an exception `e`, `promise2` must be rejected ' +
+      'with `e` as the reason.',
+    function() {
+      function testReason(expectedReason, stringRepresentation) {
+        describe('The reason is ' + stringRepresentation, function() {
+          testFulfilled(dummy, function(promise1, done) {
+            var promise2 = promise1.then(function onFulfilled() {
+              throw expectedReason
+            })
+
+            promise2.then(null, function onPromise2Rejected(actualReason) {
+              assert.strictEqual(actualReason, expectedReason)
+              done()
+            })
+          })
+          testRejected(dummy, function(promise1, done) {
+            var promise2 = promise1.then(null, function onRejected() {
+              throw expectedReason
+            })
+
+            promise2.then(null, function onPromise2Rejected(actualReason) {
+              assert.strictEqual(actualReason, expectedReason)
+              done()
+            })
+          })
+        })
+      }
+
+      const reasons = {
+        undefined: () => undefined,
+      }
+
+      Object.keys(reasons).forEach(function(stringRepresentation) {
+        testReason(reasons[stringRepresentation](), stringRepresentation)
+      })
+    }
+  )
+}
+
+throwReason()
 
 // --------------------------------------------------------
 // 1 piece
