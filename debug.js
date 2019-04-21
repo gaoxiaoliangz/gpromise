@@ -199,11 +199,11 @@ const testThen2 = () => {
     })
   }
 
-  const yFactory2 = (v) => {
+  const yFactory2 = v => {
     return {
       then(cb) {
         cb(v)
-      }
+      },
     }
   }
 
@@ -220,53 +220,188 @@ const testThen2 = () => {
   }, 10)
 }
 
-testThen2()
+const resolveThenable = () => {
+  function xFactory() {
+    return {
+      then: function(resolvePromise) {
+        resolvePromise(yFactory())
+      },
+    }
+  }
+
+  const yFactory = value => {
+    return {
+      then: function(onFulfilled) {
+        onFulfilled(value)
+      },
+    }
+  }
+
+  resolved('ok')
+    .then(v => {
+      return yFactory(xFactory(v))
+    })
+    .then(v => {
+      console.log(v, 'done')
+    })
+}
+
+const resolveThenableStuffWithTwice = () => {
+  const innerThenableFactory = v => {
+    return {
+      then(cb) {
+        setTimeout(() => {
+          cb(v)
+        }, 0)
+      },
+    }
+  }
+
+  const outerThenableFactory = v => {
+    return {
+      then(cb) {
+        cb(v)
+        cb(v + 1)
+      },
+    }
+  }
+
+  function yFactory() {
+    return outerThenableFactory(innerThenableFactory(sentinel))
+  }
+
+  function xFactory() {
+    return {
+      then: function(resolvePromise, rejectPromise) {
+        resolvePromise(yFactory())
+      },
+    }
+  }
+
+  var promise = rejected(dummy).then(null, function onBasePromiseRejected() {
+    return xFactory()
+  })
+
+  const test = (p, done, fulfillmentValue) => {
+    p.then(function onPromiseFulfilled(value) {
+      console.log('before')
+      assert.strictEqual(value, fulfillmentValue)
+      console.log('after')
+      done()
+    })
+  }
+
+  test(
+    promise,
+    () => {
+      console.log('done called')
+    },
+    sentinel
+  )
+}
+
+const resolveThenableStuff = () => {
+  const outerThenableFactory = v => {
+    return {
+      then(cb) {
+        setTimeout(() => {
+          cb(v)
+        }, 0)
+      },
+    }
+  }
+
+  const innerThenableFactory = v => {
+    return rejected(v)
+  }
+
+  function yFactory() {
+    return outerThenableFactory(innerThenableFactory(sentinel))
+  }
+
+  function xFactory() {
+    return {
+      then: function(resolvePromise, rejectPromise) {
+        resolvePromise(yFactory())
+      },
+    }
+  }
+
+  var promise = rejected(dummy).then(null, function onBasePromiseRejected() {
+    return xFactory()
+  })
+
+  const test = (p, done, fulfillmentValue) => {
+    p.then(function onPromiseFulfilled(value) {
+      console.log('before')
+      assert.strictEqual(value, fulfillmentValue)
+      console.log('after')
+      done()
+    })
+  }
+
+  test(
+    promise,
+    () => {
+      console.log('done called')
+    },
+    sentinel
+  )
+}
+
+// testThen2()
 // throwReason()
+// resolveThenable()
+resolveThenableStuff()
 
 // 2 piece
-// var outerThenableFactory = function (value) {
-//   return resolved(value);
+// var outerThenableFactory = function(value) {
+//   return resolved(value)
 // }
 
-// var innerThenableFactory = function (value) {
+// var innerThenableFactory = function(value) {
 //   return {
-//       then: function (onFulfilled) {
-//           onFulfilled(value);
-//           throw other;
-//       }
-//   };
+//     then: function(onFulfilled) {
+//       onFulfilled(value)
+//       throw other
+//     },
+//   }
 // }
 
 // function yFactory() {
-//   return outerThenableFactory(innerThenableFactory(sentinel));
+//   return outerThenableFactory(innerThenableFactory(sentinel))
 // }
 
 // function isPromise(promise) {
 //   // 2.3.3.1: promise 也可能是带有 then 的 function
-//   return promise && (promise instanceof Object || typeof promise === 'object') && ('then' in promise)
+//   return (
+//     promise &&
+//     (promise instanceof Object || typeof promise === 'object') &&
+//     'then' in promise
+//   )
 // }
 
 // console.log(isPromise(yFactory(sentinel)))
 
 // function xFactory() {
 //   return {
-//     then: function (resolvePromise) {
-//       resolvePromise(yFactory(sentinel));
-//     }
-//   };
-// };
+//     then: function(resolvePromise) {
+//       resolvePromise(yFactory(sentinel))
+//     },
+//   }
+// }
 
 // var promise = resolved(dummy).then(function onBasePromiseFulfilled() {
-//   const x = xFactory();
-//   return x;
-// });
+//   const x = xFactory()
+//   return x
+// })
 
 // promise.then(function onPromiseFulfilled(value) {
 //   console.log(value)
 //   console.log(numberOfTimesThenRetrieved)
-// });
+// })
 
-// 2 简化
+// // 2 简化
 // var promise = resolved(dummy).then(function() {
 //   return {
 //     then(resolvePromise) {
@@ -284,7 +419,7 @@ testThen2()
 //   console.log(value)
 // });
 
-// 3 then is not a function
+// // 3 then is not a function
 // var promise = resolved(dummy).then(function() {
 //   return {
 //     then: 5
@@ -320,7 +455,7 @@ testThen2()
 //   console.log(wasFulfilled, wasRejected)
 // }, 100);
 
-// 5
+// // 5
 // describe("calling `resolvePromise` then `rejectPromise`, both synchronously", function () {
 // function xFactory() {
 //   return {

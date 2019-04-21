@@ -15,14 +15,34 @@ const isPromise = value => {
 const unwrap = (maybePromise, cb, onError) => {
   try {
     if (
-      (typeof maybePromise === 'object' || typeof maybePromise === 'function') &&
+      (typeof maybePromise === 'object' ||
+        typeof maybePromise === 'function') &&
       maybePromise !== null
     ) {
       const then = maybePromise.then
-      if ( typeof then === 'function') {
-        return then.call(maybePromise, cb, onError)
+      if (typeof then === 'function') {
+        let called = false
+        return then.call(
+          maybePromise,
+          // 这边的逻辑可能被外部的 promise 实现执行多次
+          v => {
+            if (called) {
+              return
+            }
+            called = true
+            // 这里有些难理解 2.3.3.3.1
+            unwrap(v, cb, onError)
+          },
+          err => {
+            if (called) {
+              return
+            }
+            called = true
+            onError(err)
+          }
+        )
       }
-      return cb(maybePromise)  
+      return cb(maybePromise)
     }
     return cb(maybePromise)
   } catch (error) {
@@ -61,6 +81,7 @@ class Promise {
       enumerable: true,
     })
     this._initProperty('callbacks', [])
+    this._initProperty('resolveOrRejectCalled', false)
     this._initProperty('then', this._registerCallback)
     this._initProperty('catch', this._registerCallback.bind(this, null))
     executor(this._resolve.bind(this), this._reject.bind(this))
@@ -76,11 +97,19 @@ class Promise {
   }
 
   _changeState(state, value) {
+    if (this.resolveOrRejectCalled) {
+      return
+    }
+    this.resolveOrRejectCalled = true
     if (this.state === STATE.PENDING) {
       const change = (s, v) => {
         nextTick(() => {
           this.state = s
           this.value = v
+          // TODO: 检查是否处理了 rejection，不一定是接下来的 then，可能这个链很长
+          // if (s === STATE.REJECTED && this.callbacks.filter(c => typeof c.onRejected === 'function')) {
+          //   console.log('Promise rejection is not handled')
+          // }
           this._executeCallbacks()
         })
       }
