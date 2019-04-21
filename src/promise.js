@@ -67,18 +67,26 @@ class Promise {
         })
       }
 
-      // throw 出来的 promise 不需要等待完成
-      if (isPromise(value) && state !== STATE.REJECTED) {
-        value.then(
-          v => {
-            change(state, v)
-          },
-          err => {
-            change(STATE.REJECTED, err)
-          }
-        )
-      } else {
+      // reject 一个 promise 不需要等待完成
+      if (state === STATE.REJECTED) {
         change(state, value)
+      } else {
+        try {
+          if (isPromise(value)) {
+            value.then(
+              v => {
+                change(state, v)
+              },
+              err => {
+                change(STATE.REJECTED, err)
+              }
+            )
+          } else {
+            change(state, value)
+          }
+        } catch (error) {
+          change(STATE.REJECTED, error)
+        }
       }
     }
   }
@@ -106,10 +114,14 @@ class Promise {
         if (returned === returnedPromise) {
           return rejectReturned(new TypeError(`Cannot resolve using self`))
         }
-        if (isPromise(returned)) {
-          return returned.then(resolveReturned, rejectReturned)
+        try {
+          if (isPromise(returned)) {
+            return returned.then(resolveReturned, rejectReturned)
+          }
+          resolveReturned(returned)
+        } catch (error) {
+          return rejectReturned(error)
         }
-        resolveReturned(returned)
       }
 
       const [returned, hasError] = tryCatch(() => {
