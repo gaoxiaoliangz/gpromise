@@ -193,6 +193,9 @@ class Promise {
       rejectReturned,
       returnedPromise,
     })
+    if (this.state !== STATE.PENDING) {
+      this._executeCallbacks()
+    }
     return returnedPromise
   }
 }

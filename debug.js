@@ -349,10 +349,102 @@ const resolveThenableStuff = () => {
   )
 }
 
+const testThenableForAThenable = () => {
+  function xFactory() {
+    return {
+      then: function(resolvePromise) {
+        resolvePromise(yFactory())
+      },
+    }
+  }
+
+  const outerThenableFactory = v => {
+    return {
+      then(cb) {
+        setTimeout(() => {
+          cb(v)
+        }, 0)
+      },
+    }
+  }
+
+  const innerThenableFactory = v => {
+    return resolved(v)
+  }
+
+  function yFactory() {
+    return outerThenableFactory(innerThenableFactory(sentinel))
+  }
+
+  var promise = resolved(dummy).then(function onBasePromiseFulfilled() {
+    return xFactory()
+  })
+
+  const test = (promise, fulfillmentValue, done) => {
+    promise.then(function onPromiseFulfilled(value) {
+      assert.strictEqual(value, fulfillmentValue)
+      done()
+    })
+  }
+
+  test(promise, sentinel, () => {
+    console.log('done called')
+  })
+}
+
+const testThenableForAThenableSimplified = () => {
+  const outerThenableFactory = v => {
+    return {
+      then(cb) {
+        // cb(v)
+        setTimeout(() => {
+          cb(v)
+          throw 'fucked'
+        }, 10)
+      },
+    }
+  }
+
+  const innerThenableFactory = v => {
+    return resolved(v)
+  }
+
+  function yFactory() {
+    return outerThenableFactory(innerThenableFactory(sentinel))
+  }
+
+  const test = (fulfillmentValue, done) => {
+    const p1 = resolved(dummy)
+    const p2 = p1.then(function onBasePromiseFulfilled() {
+      console.log('here')
+      return {
+        then: function(resolvePromise) {
+          resolvePromise(yFactory())
+        },
+      }
+    })
+    console.log(p2)
+    const p3 = p2.then(function onPromiseFulfilled(value) {
+      assert.strictEqual(value, fulfillmentValue)
+      done()
+    })
+  }
+
+  test(sentinel, () => {
+    console.log('done called')
+  })
+}
+
+const testThrow = () => {
+
+}
+
 // testThen2()
 // throwReason()
 // resolveThenable()
-resolveThenableStuff()
+// resolveThenableStuff()
+// testThenableForAThenable()
+testThenableForAThenableSimplified()
 
 // 2 piece
 // var outerThenableFactory = function(value) {
