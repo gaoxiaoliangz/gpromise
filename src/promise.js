@@ -12,6 +12,24 @@ const isPromise = value => {
   )
 }
 
+const unwrap = (maybePromise, cb, onError) => {
+  try {
+    if (
+      (typeof maybePromise === 'object' || typeof maybePromise === 'function') &&
+      maybePromise !== null
+    ) {
+      const then = maybePromise.then
+      if ( typeof then === 'function') {
+        return then.call(maybePromise, cb, onError)
+      }
+      return cb(maybePromise)  
+    }
+    return cb(maybePromise)
+  } catch (error) {
+    onError(error)
+  }
+}
+
 const tryCatch = fn => {
   try {
     return [fn(), false]
@@ -71,22 +89,7 @@ class Promise {
       if (state === STATE.REJECTED) {
         change(state, value)
       } else {
-        try {
-          if (isPromise(value)) {
-            value.then(
-              v => {
-                change(state, v)
-              },
-              err => {
-                change(STATE.REJECTED, err)
-              }
-            )
-          } else {
-            change(state, value)
-          }
-        } catch (error) {
-          change(STATE.REJECTED, error)
-        }
+        unwrap(value, v => change(state, v), err => change(STATE.REJECTED, err))
       }
     }
   }
@@ -114,16 +117,10 @@ class Promise {
         if (returned === returnedPromise) {
           return rejectReturned(new TypeError(`Cannot resolve using self`))
         }
-        try {
-          if (isPromise(returned)) {
-            return returned.then(resolveReturned, rejectReturned)
-          }
-          resolveReturned(returned)
-        } catch (error) {
-          return rejectReturned(error)
-        }
+        unwrap(returned, resolveReturned, rejectReturned)
       }
 
+      // execute callback
       const [returned, hasError] = tryCatch(() => {
         if (this.state === STATE.FULFILLED) {
           if (typeof onFulfilled === 'function') {
@@ -139,6 +136,7 @@ class Promise {
 
       callback.executed = true
 
+      // handle callback exception & return value
       if (hasError) {
         return rejectReturned(returned)
       }

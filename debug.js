@@ -179,27 +179,49 @@ const throwReason = () => {
   )
 }
 
-throwReason()
+// 2.3.3.1
+const testThen2 = () => {
+  var numberOfTimesThenRetrieved = 0
+  function yFactory(value) {
+    return Object.create(null, {
+      then: {
+        get: function() {
+          if (numberOfTimesThenRetrieved === 0) {
+            ++numberOfTimesThenRetrieved
+            return function(onFulfilled) {
+              console.log('here')
+              onFulfilled(value)
+            }
+          }
+          return null
+        },
+      },
+    })
+  }
 
-// --------------------------------------------------------
-// 1 piece
-// function yFactory() { return 5; }
-// var numberOfTimesThenRetrieved = 0;
-// function yFactory(value) {
-//   return Object.create(null, {
-//     then: {
-//       get: function () {
-//         if (numberOfTimesThenRetrieved === 0) {
-//           ++numberOfTimesThenRetrieved;
-//           return function (onFulfilled) {
-//             onFulfilled(value);
-//           };
-//         }
-//         return null;
-//       }
-//     }
-//   });
-// }
+  const yFactory2 = (v) => {
+    return {
+      then(cb) {
+        cb(v)
+      }
+    }
+  }
+
+  const p1 = resolved(1)
+  const p2 = p1.then(() => {
+    return yFactory(2)
+  })
+  const p3 = p2.then(() => {
+    console.log('done')
+  })
+
+  setTimeout(() => {
+    console.log('numberOfTimesThenRetrieved', numberOfTimesThenRetrieved)
+  }, 10)
+}
+
+testThen2()
+// throwReason()
 
 // 2 piece
 // var outerThenableFactory = function (value) {
