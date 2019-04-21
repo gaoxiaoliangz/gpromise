@@ -6,7 +6,7 @@
   "scripts": {
     "test": "promises-aplus-tests test/adapter",
     "test:cover": "mocha -R nyan ./test/cover.js",
-    "test:step": "mocha -R nyan ./test/step.js"
+    "test:step": "mocha ./test/step.js"
   },
   "repository": {
     "type": "git",
