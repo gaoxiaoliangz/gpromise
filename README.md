@@ -3,7 +3,7 @@
          title="Promises/A+ 1.0 compliant" align="right" />
 </a>
 
-# build-my-promise
+# my-promise
 
 A small promise library implementing the [Promises/A+ spec](http://promises-aplus.github.com/promises-spec/) (Version 1.1).
 
