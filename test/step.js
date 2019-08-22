@@ -1,4 +1,5 @@
-var adapter = require('./adapter')
+const adapter = require('./adapter')
+
 global.adapter = adapter
 
 require('./aplus-tests/2.1.2')
