@@ -35,11 +35,8 @@ class Promise {
   }
 
   constructor(executor) {
-    this._successCallbacks = []
-    this._failureCallbacks = []
-    // if child promise has no _failureCallbacks & state is rejected
-    // this will be executed
-    this._childPromiseRejects = []
+    // { reslove, reject, onFullfilled, onRejected }
+    this.chained = []
     this._state = STATE_PENDING
     this._value = null
     executor(this._resolve.bind(this), this._reject.bind(this))
@@ -80,43 +77,43 @@ class Promise {
   }
 
   _execCallbacks() {
-    let callbacks = this._state === STATE_RESOLVED ? this._successCallbacks : this._failureCallbacks
-    if (this._state === STATE_REJECTED && callbacks.length === 0) {
-      callbacks = this._childPromiseRejects
-    }
-    while (true) {
-      const cb = callbacks.shift()
-      if (cb) {
-        cb(this._value)
+    while (this.chained.length) {
+      const { resolve, reject, onFullfilled, onRejected } = this.chained.shift()
+      if (this._state === STATE_RESOLVED) {
+        if (typeof onFullfilled === 'function') {
+          try {
+            const result = onFullfilled(this._value)
+            unwrap(result, resolve, reject)
+          } catch (error) {
+            reject(error)
+          }
+        } else {
+          resolve(this._value)
+        }
       } else {
-        break
+        if (typeof onRejected === 'function') {
+          try {
+            const result = onRejected(this._value)
+            unwrap(result, resolve, reject)
+          } catch (error) {
+            reject(error)
+          }
+        } else {
+          reject(this._value)
+        }
       }
     }
   }
 
   then(onFullfilled, onRejected) {
-    let _resolve
-    let _reject
     const promise = new Promise((resolve, reject) => {
-      _resolve = resolve
-      _reject = reject
+      this.chained.push({
+        resolve,
+        reject,
+        onFullfilled,
+        onRejected,
+      })
     })
-
-    if (!onRejected) {
-      this._childPromiseRejects.push(_reject)
-    }
-    if (typeof onFullfilled === 'function') {
-      this._successCallbacks.push(value => {
-        const result = onFullfilled(value)
-        unwrap(result, _resolve, _reject)
-      })
-    }
-    if (typeof onRejected === 'function') {
-      this._failureCallbacks.push(value => {
-        const result = onRejected(value)
-        unwrap(result, _resolve, _reject)
-      })
-    }
     return promise
   }
 
