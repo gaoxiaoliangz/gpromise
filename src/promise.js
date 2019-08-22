@@ -35,7 +35,7 @@ class Promise {
   }
 
   constructor(executor) {
-    // { reslove, reject, onFullfilled, onRejected }
+    // { reslove, reject, onFullfilled, onRejected, promise }
     this.chained = []
     this._state = STATE_PENDING
     this._value = null
@@ -70,11 +70,14 @@ class Promise {
 
   _execCallbacks() {
     while (this.chained.length) {
-      const { resolve, reject, onFullfilled, onRejected } = this.chained.shift()
+      const { resolve, reject, onFullfilled, onRejected, promise } = this.chained.shift()
       if (this._state === STATE_RESOLVED) {
         if (typeof onFullfilled === 'function') {
           try {
             const result = onFullfilled(this._value)
+            if (result === promise) {
+              throw new TypeError('Chaining cycle detected')
+            }
             unwrap(result, resolve, reject)
           } catch (error) {
             reject(error)
@@ -86,6 +89,9 @@ class Promise {
         if (typeof onRejected === 'function') {
           try {
             const result = onRejected(this._value)
+            if (result === promise) {
+              throw new TypeError('Chaining cycle detected')
+            }
             unwrap(result, resolve, reject)
           } catch (error) {
             reject(error)
@@ -98,19 +104,24 @@ class Promise {
   }
 
   then(onFullfilled, onRejected) {
+    let _resolve
+    let _reject
     const promise = new Promise((resolve, reject) => {
-      this.chained.push({
-        resolve,
-        reject,
-        onFullfilled,
-        onRejected,
-      })
+      _resolve = resolve
+      _reject = reject
+    })
+    this.chained.push({
+      resolve: _resolve,
+      reject: _reject,
+      onFullfilled,
+      onRejected,
+      promise,
     })
     return promise
   }
 
   catch(onRejected) {
-    this.then(null, onRejected)
+    return this.then(null, onRejected)
   }
 }
 
