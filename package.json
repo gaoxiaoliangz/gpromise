@@ -19,8 +19,8 @@
   },
   "homepage": "https://github.com/gaoxiaoliangz/gpromise#readme",
   "devDependencies": {
-    "immediate": "^3.2.3",
-    "mocha": "^3.5.0",
+    "jest": "^24.9.0",
+    "mocha": "^6.2.0",
     "promises-aplus-tests": "^2.1.2"
   }
 }
