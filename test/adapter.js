@@ -1,4 +1,4 @@
-const useWhich = 'standardPromise'
+const useWhich = 'myPromise'
 
 const createAdapter = Promise => ({
   deferred: () => {
