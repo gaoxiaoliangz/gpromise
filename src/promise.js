@@ -64,15 +64,7 @@ class Promise {
 
   _reject(value) {
     if (this._state === STATE_PENDING) {
-      unwrap(
-        value,
-        v => {
-          this._changeState(STATE_REJECTED, v)
-        },
-        () => {
-          this._changeState(STATE_REJECTED, value)
-        },
-      )
+      this._changeState(STATE_REJECTED, value)
     }
   }
 
