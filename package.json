@@ -7,7 +7,8 @@
     "test": "promises-aplus-tests test/adapter",
     "test:cover": "mocha -R nyan ./test/cover.js",
     "test:step": "mocha ./test/step.js",
-    "test:step:debug": "node --inspect-brk ./node_modules/mocha/bin/mocha ./test/step.js"
+    "test:step:debug": "node --inspect-brk ./node_modules/mocha/bin/mocha ./test/step.js",
+    "mocha": "node --inspect-brk ./node_modules/mocha/bin/mocha"
   },
   "repository": {
     "type": "git",
