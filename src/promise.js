@@ -6,9 +6,11 @@ const STATE_REJECTED = 'rejected'
 let debugId = 0
 const getDebugId = () => debugId++
 
-const getThen = maybeThenable => {
-  // TODO: handle retrive error
-  const then = maybeThenable !== null && typeof maybeThenable === 'object' && maybeThenable.then
+const retriveThen = maybeThenable => {
+  const then =
+    maybeThenable !== null &&
+    (typeof maybeThenable === 'object' || typeof maybeThenable === 'function') &&
+    maybeThenable.then
 
   if (typeof then === 'function') {
     return then
@@ -18,35 +20,68 @@ const getThen = maybeThenable => {
 
 const makeAsync = setImmediate
 
-const unwrap = (maybeThenable, resolve, reject) => {
-  let called = false
-  const then = getThen(maybeThenable)
-  if (then) {
-    return then.call(
-      maybeThenable,
-      value => {
-        if (called) {
-          return
-        }
-        called = true
-        // check nested thenables
-        try {
-          unwrap(value, resolve, reject)
-        } catch (error) {
-          reject(error)
-        }
-      },
-      err => {
-        // TODO: is is necessary
-        if (called) {
-          return
-        }
-        called = true
-        reject(err)
-      },
-    )
+const tryCatch = (fn, onSuccess, onError) => {
+  try {
+    onSuccess(fn())
+  } catch (error) {
+    onError(error)
   }
-  resolve(maybeThenable)
+}
+
+const createOneOffFn = fn => {
+  let called = false
+  return (...args) => {
+    if (called) {
+      return
+    }
+    called = true
+    return fn(...args)
+  }
+}
+
+const identity = v => v
+const noop = () => {}
+
+const unwrap = (maybeThenable, onUnwrapped, onError) => {
+  tryCatch(
+    () => retriveThen(maybeThenable),
+    then => {
+      if (then) {
+        // maybe this is a bad design
+        let callbackCalled = false
+        return tryCatch(
+          () =>
+            then.call(
+              maybeThenable,
+              createOneOffFn(value => {
+                if (callbackCalled) {
+                  return
+                }
+                callbackCalled = true
+                unwrap(value, onUnwrapped, onError)
+              }),
+              error => {
+                if (callbackCalled) {
+                  return
+                }
+                callbackCalled = true
+                onError(error)
+              },
+            ),
+          noop,
+          execThenError => {
+            if (callbackCalled) {
+              return
+            }
+            callbackCalled = true
+            onError(execThenError)
+          },
+        )
+      }
+      onUnwrapped(maybeThenable)
+    },
+    retriveThenError => onError(retriveThenError),
+  )
 }
 
 class Promise {
@@ -63,19 +98,17 @@ class Promise {
   }
 
   constructor(executor) {
-    // { reslove, reject, onFullfilled, onRejected, promise }
+    // { reslove, reject, onFullfilled, onRejected }[]
     this.chained = []
     this._state = STATE_PENDING
     this._value = null
     this._resolveOrRejectCalled = false
-    this._changeStateCalled = false
     this._debugId = getDebugId()
     executor(this._resolve.bind(this), this._reject.bind(this))
   }
 
   _changeState(state, value) {
     if (this._state === STATE_PENDING) {
-      this._changeStateCalled = true
       this._state = state
       this._value = value
       makeAsync(this._execCallbacks.bind(this))
@@ -87,19 +120,17 @@ class Promise {
       return
     }
     this._resolveOrRejectCalled = true
-    try {
-      unwrap(
-        value,
-        v => {
-          this._changeState(STATE_RESOLVED, v)
-        },
-        v => {
-          this._changeState(STATE_REJECTED, v)
-        },
-      )
-    } catch (error) {
-      this._changeState(STATE_REJECTED, error)
+    if (value === this) {
+      return this._changeState(STATE_REJECTED, new TypeError('Chaining cycle detected'))
     }
+    unwrap(
+      value,
+      unwrappedValue => {
+        this._changeState(STATE_RESOLVED, unwrappedValue)
+      },
+      error => this._changeState(STATE_REJECTED, error),
+      // this._reject.bind(this),
+    )
   }
 
   _reject(value) {
@@ -112,36 +143,9 @@ class Promise {
 
   _execCallbacks() {
     while (this.chained.length) {
-      const { resolve, reject, onFullfilled, onRejected, promise } = this.chained.shift()
-      if (this._state === STATE_RESOLVED) {
-        if (typeof onFullfilled === 'function') {
-          try {
-            const result = onFullfilled(this._value)
-            if (result === promise) {
-              throw new TypeError('Chaining cycle detected')
-            }
-            unwrap(result, resolve, reject)
-          } catch (error) {
-            reject(error)
-          }
-        } else {
-          resolve(this._value)
-        }
-      } else {
-        if (typeof onRejected === 'function') {
-          try {
-            const result = onRejected(this._value)
-            if (result === promise) {
-              throw new TypeError('Chaining cycle detected')
-            }
-            unwrap(result, resolve, reject)
-          } catch (error) {
-            reject(error)
-          }
-        } else {
-          reject(this._value)
-        }
-      }
+      const { resolve, reject, onFullfilled, onRejected } = this.chained.shift()
+      const cb = this._state === STATE_RESOLVED ? onFullfilled : onRejected
+      tryCatch(() => cb(this._value), resolve, reject)
     }
   }
 
@@ -155,9 +159,8 @@ class Promise {
     this.chained.push({
       resolve: _resolve,
       reject: _reject,
-      onFullfilled,
-      onRejected,
-      promise,
+      onFullfilled: typeof onFullfilled === 'function' ? onFullfilled : identity,
+      onRejected: typeof onRejected === 'function' ? onRejected : err => Promise.reject(err),
     })
     if (this._state !== STATE_PENDING) {
       makeAsync(this._execCallbacks.bind(this))
@@ -166,7 +169,7 @@ class Promise {
   }
 
   catch(onRejected) {
-    return this.then(null, onRejected)
+    return this.then.call(this, null, onRejected)
   }
 }
 

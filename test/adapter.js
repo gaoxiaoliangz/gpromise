@@ -1,5 +1,9 @@
-const useWhich = 'myPromise'
-// const useWhich = 'standardPromise'
+let useWhich = 'myPromise'
+const useStd = process.argv.includes('--std')
+
+if (useStd) {
+  useWhich = 'standardPromise'
+}
 
 const createAdapter = Promise => ({
   deferred: () => {
