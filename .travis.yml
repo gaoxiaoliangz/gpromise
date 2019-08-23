@@ -1,0 +1,8 @@
+language: node_js
+
+before_install:
+  - npm install
+  - npm run test:cover
+
+node_js:
+  - 'stable'
