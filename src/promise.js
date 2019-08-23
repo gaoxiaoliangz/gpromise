@@ -3,9 +3,6 @@ const STATE_PENDING = 'pending'
 const STATE_RESOLVED = 'resolved'
 const STATE_REJECTED = 'rejected'
 
-let debugId = 0
-const getDebugId = () => debugId++
-
 const retriveThen = maybeThenable => {
   const then =
     maybeThenable !== null &&
@@ -28,17 +25,6 @@ const tryCatch = (fn, onSuccess, onError) => {
   }
 }
 
-const createOneOffFn = fn => {
-  let called = false
-  return (...args) => {
-    if (called) {
-      return
-    }
-    called = true
-    return fn(...args)
-  }
-}
-
 const identity = v => v
 const noop = () => {}
 
@@ -47,33 +33,32 @@ const unwrap = (maybeThenable, onUnwrapped, onError) => {
     () => retriveThen(maybeThenable),
     then => {
       if (then) {
-        // maybe this is a bad design
-        let callbackCalled = false
+        let called = false
         return tryCatch(
           () =>
             then.call(
               maybeThenable,
-              createOneOffFn(value => {
-                if (callbackCalled) {
+              value => {
+                if (called) {
                   return
                 }
-                callbackCalled = true
+                called = true
                 unwrap(value, onUnwrapped, onError)
-              }),
+              },
               error => {
-                if (callbackCalled) {
+                if (called) {
                   return
                 }
-                callbackCalled = true
+                called = true
                 onError(error)
               },
             ),
           noop,
           execThenError => {
-            if (callbackCalled) {
+            if (called) {
               return
             }
-            callbackCalled = true
+            called = true
             onError(execThenError)
           },
         )
@@ -103,7 +88,6 @@ class Promise {
     this._state = STATE_PENDING
     this._value = null
     this._resolveOrRejectCalled = false
-    this._debugId = getDebugId()
     executor(this._resolve.bind(this), this._reject.bind(this))
   }
 
@@ -129,7 +113,6 @@ class Promise {
         this._changeState(STATE_RESOLVED, unwrappedValue)
       },
       error => this._changeState(STATE_REJECTED, error),
-      // this._reject.bind(this),
     )
   }
 
