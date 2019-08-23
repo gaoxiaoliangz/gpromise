@@ -7,6 +7,8 @@
 
 A small promise library implementing the [Promises/A+ spec](http://promises-aplus.github.com/promises-spec/) (Version 1.1).
 
+![](https://api.travis-ci.org/gaoxiaoliangz/gpromise.svg?branch=master)
+
 ## Basic Usage
 
 ```js
