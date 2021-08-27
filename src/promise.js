@@ -97,6 +97,13 @@ class Promise {
       }
     };
 
+    if (v === this) {
+      this._settleState(
+        STATE.rejected,
+        new TypeError("Cannot use current promise as resolve value")
+      );
+      return;
+    }
     resolveThenable(v);
   }
 
@@ -109,33 +116,20 @@ class Promise {
   }
 
   then(onFullfilled, onRejected) {
-    const promise = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this._cbs.push(() => {
-        let cb = (v) => v;
-
-        if (this._state === STATE.fullfilled) {
-          if (typeof onFullfilled === "function") {
-            cb = onFullfilled;
-          }
-        } else {
-          if (typeof onRejected === "function") {
-            cb = onRejected;
-          } else {
-            cb = null;
-          }
-        }
+        const cb =
+          this._state === STATE.fullfilled
+            ? typeof onFullfilled === "function"
+              ? onFullfilled
+              : (v) => v
+            : this._state === STATE.rejected && typeof onRejected === "function"
+            ? onRejected
+            : null;
 
         if (cb) {
           try {
-            const result = cb(this._value);
-            if (result === promise) {
-              return reject(
-                new TypeError(
-                  "Cannot use current promise as callback return value"
-                )
-              );
-            }
-            resolve(result);
+            resolve(cb(this._value));
           } catch (error) {
             reject(error);
           }
@@ -146,8 +140,6 @@ class Promise {
 
       this._cb();
     });
-
-    return promise;
   }
 
   catch(onRejected) {
